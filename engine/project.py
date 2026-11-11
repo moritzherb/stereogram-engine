@@ -4,6 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+BUNDLED_FONT = Path(__file__).resolve().parents[1] / "assets" / "fonts" / "Lato-Regular.ttf"
+
 
 @dataclass(frozen=True)
 class Project:
@@ -31,7 +33,9 @@ class Project:
 
     @property
     def font_path(self) -> Path:
-        return self.fonts / "Lato-Regular.ttf"
+        """The project's own font, or the one shipped with the engine."""
+        own = self.fonts / "Lato-Regular.ttf"
+        return own if own.exists() else BUNDLED_FONT
 
     @property
     def scenes(self) -> Path:

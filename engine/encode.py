@@ -48,7 +48,9 @@ def _run_to(out: Path, args: list[str]) -> None:
 class VideoWriter:
     """Pipe RGB frames into an H.264 MP4. The file appears only when complete."""
 
-    def __init__(self, path: Path, width: int, height: int, fps: int = 30, crf: int = 16, preset: str = "slow"):
+    def __init__(self, path: Path, width: int, height: int, fps: int = 30, crf: int = 16,
+                 preset: str | None = None):
+        preset = preset or os.environ.get("STEREO_X264_PRESET", "slow")
         self.path = Path(path)
         self.width, self.height = width, height
         self.part = _part(self.path)

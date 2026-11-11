@@ -64,3 +64,18 @@ def make_sine(path, seconds: float, freq: int = 440):
     subprocess.run([ffmpeg_path(), "-y", "-loglevel", "error", "-f", "lavfi",
                     "-i", f"sine=frequency={freq}:duration={seconds}", str(path)], check=True)
     return path
+
+
+@pytest.fixture(autouse=True)
+def fast_x264(monkeypatch):
+    """Encode test videos quickly; real renders use the high-quality preset."""
+    monkeypatch.setenv("STEREO_X264_PRESET", "ultrafast")
+
+
+def write_scene(project, name: str, **data):
+    import yaml
+
+    data.setdefault("id", name.removesuffix(".yaml"))
+    p = project.scenes / name
+    p.write_text(yaml.safe_dump(data))
+    return p
