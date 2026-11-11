@@ -85,7 +85,7 @@ def _check_blender() -> CheckItem:
     with tempfile.TemporaryDirectory() as tmp:
         job = Path(tmp) / "job.json"
         out = Path(tmp) / "out"
-        job.write_text(json.dumps({"probe": True, "out_dir": str(out)}))
+        job.write_text(json.dumps({"probe": True, "out_dir": str(out), "width": 540, "height": 960}))
         proc = subprocess.run([str(path), "-b", "--factory-startup", "--python", str(SCRIPT), "--", str(job)],
                               capture_output=True, text=True, timeout=600)
         meta_file = out / "meta.json"
@@ -94,10 +94,11 @@ def _check_blender() -> CheckItem:
             return CheckItem("blender", False, f"{vtext} failed the test render:\n{tail}",
                              "Try Blender 4.2 LTS, or send this output to your developer")
         spf = json.loads(meta_file.read_text())["seconds_per_frame"]
-    minutes = spf * SHORT_FRAMES / 60
+    full_spf = spf * 4  # full Short has 4x the pixels of the 540x960 test
+    minutes = full_spf * SHORT_FRAMES / 60
     return CheckItem("blender", True,
-                     f"{vtext}, {spf:.1f} s/frame (test size) -> about {minutes:.0f} min "
-                     f"of depth rendering per 30 s Short (full size is slower)")
+                     f"{vtext}, test render OK -> roughly {minutes:.0f} min of depth rendering "
+                     f"per 30 s Short (simple shapes; detailed models take longer)")
 
 
 def run_checks(include_blender: bool = True) -> list[CheckItem]:
