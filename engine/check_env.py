@@ -8,7 +8,15 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from engine.depth.blender_source import SUPPORTED_VERSIONS, blender_command, blender_version, find_blender
+from engine.depth.blender_source import (
+    DEPTH_SCALE,
+    SAMPLES,
+    SUPPORTED_VERSIONS,
+    blender_command,
+    blender_version,
+    find_blender,
+)
+from engine.formats import SHORT
 
 FONT = Path(__file__).resolve().parents[1] / "assets" / "fonts" / "Lato-Regular.ttf"
 SHORT_FRAMES = 900  # 30 s at 30 fps
@@ -85,7 +93,8 @@ def _check_blender() -> CheckItem:
     with tempfile.TemporaryDirectory() as tmp:
         job = Path(tmp) / "job.json"
         out = Path(tmp) / "out"
-        job.write_text(json.dumps({"probe": True, "out_dir": str(out), "width": 540, "height": 960}))
+        job.write_text(json.dumps({"probe": True, "out_dir": str(out), "samples": SAMPLES,
+                                   "width": SHORT.width // DEPTH_SCALE, "height": SHORT.height // DEPTH_SCALE}))
         proc = subprocess.run(blender_command(path, job),
                               capture_output=True, text=True, timeout=600)
         meta_file = out / "meta.json"
@@ -94,8 +103,7 @@ def _check_blender() -> CheckItem:
             return CheckItem("blender", False, f"{vtext} failed the test render:\n{tail}",
                              "Try Blender 4.2 LTS, or send this output to your developer")
         spf = json.loads(meta_file.read_text())["seconds_per_frame"]
-    full_spf = spf * 4  # full Short has 4x the pixels of the 540x960 test
-    minutes = full_spf * SHORT_FRAMES / 60
+    minutes = spf * SHORT_FRAMES / 60  # the test uses the real depth size and samples
     return CheckItem("blender", True,
                      f"{vtext}, test render OK -> roughly {minutes:.0f} min of depth rendering "
                      f"per 30 s Short (simple shapes; detailed models take longer)")

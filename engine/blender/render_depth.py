@@ -124,7 +124,7 @@ def run_probe(job):
     os.makedirs(out_dir, exist_ok=True)
     scene = bpy.context.scene
     clear_scene()
-    setup_render(scene, job.get("width", 108), job.get("height", 192))
+    setup_render(scene, job.get("width", 108), job.get("height", 192), samples=job.get("samples", 8))
     bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0, 0, 0))
     cube = bpy.context.active_object
     scene.frame_start, scene.frame_end = 1, 3
