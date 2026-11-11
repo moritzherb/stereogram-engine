@@ -53,3 +53,14 @@ def fake_blender(tmp_path, monkeypatch):
             return int(count.read_text()) if count.exists() else 0
 
     return Fake
+
+
+def make_sine(path, seconds: float, freq: int = 440):
+    """Write a test tone (any container ffmpeg can infer from the suffix)."""
+    import subprocess
+
+    from engine.encode import ffmpeg_path
+
+    subprocess.run([ffmpeg_path(), "-y", "-loglevel", "error", "-f", "lavfi",
+                    "-i", f"sine=frequency={freq}:duration={seconds}", str(path)], check=True)
+    return path
