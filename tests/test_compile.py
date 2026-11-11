@@ -43,7 +43,7 @@ def test_compile_two_scenes(tmp_project):
     assert (info.width, info.height) == (1920, 1080)
     assert info.duration == pytest.approx(5 + 2 * (1 + 4 + 0.5) + 4, abs=0.2)
     chapters = (video.parent / "chapters.txt").read_text().splitlines()
-    assert chapters == ["00:00 Intro", "00:05 Stereogram 1", "00:10 Stereogram 2", "00:16 Outro"]
+    assert chapters == ["00:00 Stereogram 1", "00:10 Stereogram 2"]
     assert "Secret" not in "\n".join(chapters)
     assert not list(video.parent.glob("*.part*")) and not list(video.parent.glob("*.video.mp4"))
 

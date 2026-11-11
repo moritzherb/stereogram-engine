@@ -1,8 +1,8 @@
-# The word HELLO, spinning slowly, hidden in a cells pattern.
+# The word HELLO, gently floating, hidden in a cells pattern.
+# (Flat text reads best with float, bob or zoom_in; spin turns it edge-on.)
 id: example-text
 text3d: "HELLO"
-motion: spin
-speed: 0.5
+motion: float
 duration: 20
 pattern:
   generate: cells

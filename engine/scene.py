@@ -114,6 +114,21 @@ class Scene(_Strict):
     _id = field_validator("id")(classmethod(lambda cls, v: _check_id(v)))
     _plain = field_validator("title", "text3d")(classmethod(lambda cls, v: _no_emoji(v)))
 
+    @model_validator(mode="before")
+    @classmethod
+    def _yaml_booleans(cls, data: Any) -> Any:
+        """YAML reads unquoted on/off/yes/no as true/false; map them back."""
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+        if isinstance(data.get("reveal"), bool):
+            data["reveal"] = "on" if data["reveal"] else "off"
+        if isinstance(data.get("music"), bool):
+            data["music"] = "auto" if data["music"] else "none"
+        if isinstance(data.get("text"), dict):
+            data["text"] = {k: (None if v is False else v) for k, v in data["text"].items()}
+        return data
+
     @field_validator("model", mode="before")
     @classmethod
     def _model(cls, v: Any, info: ValidationInfo) -> Path | None:

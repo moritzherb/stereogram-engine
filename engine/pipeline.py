@@ -1,6 +1,7 @@
 """Rendering scenes into finished videos (one scene, a batch, or a quick preview)."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import dataclass, field
@@ -161,7 +162,17 @@ def _credits(scene: Scene, track: Path | None) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _is_up_to_date(scene: Scene, out_dir: Path) -> bool:
+def full_hash(scene: Scene, project: Project) -> str:
+    """render_hash plus the music track the scene would pick right now."""
+    track = _music_for(scene, project)
+    stamp = None
+    if track is not None and track.exists():
+        st = track.stat()
+        stamp = [str(track), st.st_mtime_ns, st.st_size]
+    return hashlib.sha256(json.dumps([render_hash(scene), stamp]).encode()).hexdigest()
+
+
+def _is_up_to_date(scene: Scene, project: Project, out_dir: Path) -> bool:
     meta_file = out_dir / "render.json"
     if not meta_file.exists():
         return False
@@ -169,7 +180,7 @@ def _is_up_to_date(scene: Scene, out_dir: Path) -> bool:
         meta = json.loads(meta_file.read_text())
     except json.JSONDecodeError:
         return False
-    return meta.get("render_hash") == render_hash(scene) and all((out_dir / o).exists() for o in meta["outputs"])
+    return meta.get("render_hash") == full_hash(scene, project) and all((out_dir / o).exists() for o in meta["outputs"])
 
 
 def render_scene(scene: Scene, project: Project, depth_source: DepthSource, *, preview: bool = False,
@@ -187,32 +198,32 @@ def render_scene(scene: Scene, project: Project, depth_source: DepthSource, *, p
     if preview:
         short = scene.model_copy(update={"duration": min(PREVIEW_SECONDS, scene.duration)})
         fmt = preview_of(SHORT)
+        strip = pattern_strip(short, _repeat_px(short, fmt))  # fail fast on a bad image
+        warn(check_pattern(strip))
         seq = depth_source.render(short, fmt)
         warn(check_safe_area(seq, fmt) + check_motion(seq))
-        strip = pattern_strip(short, _repeat_px(short, fmt))
-        warn(check_pattern(strip))
         outputs, _, _ = _render_short(short, project, fmt, seq, strip, out_dir, name="preview",
                                       with_music=False, log=log)
         result.outputs = outputs
         return result
 
-    if not force and _is_up_to_date(scene, out_dir):
+    if not force and _is_up_to_date(scene, project, out_dir):
         log(f"[{scene.id}] unchanged, skipping")
         result.skipped = True
         return result
     (out_dir / "render.json").unlink(missing_ok=True)
 
+    formats = [(name, SHORT if name == "short" else LONG) for name in ("short", "long") if name in scene.formats]
+    strips = {name: pattern_strip(scene, _repeat_px(scene, fmt)) for name, fmt in formats}  # before Blender runs
+    for strip in strips.values():
+        warn(check_pattern(strip))
     track: Path | None = None
     middle_long: np.ndarray | None = None
     middle_short: np.ndarray | None = None
-    for fmt_name in ("short", "long"):
-        if fmt_name not in scene.formats:
-            continue
-        fmt = SHORT if fmt_name == "short" else LONG
+    for fmt_name, fmt in formats:
+        strip = strips[fmt_name]
         seq = depth_source.render(scene, fmt)
         warn(check_safe_area(seq, fmt) + check_motion(seq))
-        strip = pattern_strip(scene, _repeat_px(scene, fmt))
-        warn(check_pattern(strip))
         if fmt_name == "short":
             outputs, fr, track = _render_short(scene, project, fmt, seq, strip, out_dir, name="short",
                                                with_music=True, log=log)
@@ -235,13 +246,22 @@ def render_scene(scene: Scene, project: Project, depth_source: DepthSource, *, p
     credits = out_dir / "credits.txt"
     credits.write_text(_credits(scene, track), encoding="utf-8")
     result.outputs.append(credits)
-    meta = {"render_hash": render_hash(scene), "title": scene.title, "outputs": [p.name for p in result.outputs],
+    meta = {"render_hash": full_hash(scene, project), "title": scene.title, "outputs": [p.name for p in result.outputs],
             "warnings": [w.code for w in result.warnings]}
     tmp = out_dir / "render.json.part"
     tmp.write_text(json.dumps(meta, indent=2))
     os.replace(tmp, out_dir / "render.json")
     log(f"[{scene.id}] finished -> {out_dir}")
     return result
+
+
+def log_details(e: BaseException, log: Log) -> None:
+    """Show the end of Blender's log, if the error carries one."""
+    tail = getattr(e, "log_tail", "")
+    if tail:
+        log("  Last lines of the Blender log (send these to your developer):")
+        for line in tail.splitlines()[-15:]:
+            log(f"    {line}")
 
 
 def scene_files(paths: list[Path]) -> list[Path]:
@@ -255,9 +275,14 @@ def scene_files(paths: list[Path]) -> list[Path]:
 def render_batch(paths: list[Path], project: Project, depth_source: DepthSource, *, force: bool = False,
                  log: Log = print) -> BatchSummary:
     summary = BatchSummary()
+    seen: dict[str, str] = {}
     for f in scene_files(paths):
         try:
             scene = load_scene(f, project)
+            if scene.id in seen:
+                raise SceneError(f"{f.name}: id: '{scene.id}' is already used by {seen[scene.id]}. "
+                                 f"Give each scene its own id.")
+            seen[scene.id] = f.name
             r = render_scene(scene, project, depth_source, force=force, log=log)
         except SceneError as e:
             summary.failed.append((f.name, str(e)))
@@ -267,6 +292,7 @@ def render_batch(paths: list[Path], project: Project, depth_source: DepthSource,
             reason = getattr(e, "reason", None) or f"{type(e).__name__}: {e}"
             summary.failed.append((f.name, reason))
             log(f"[{f.name}] failed: {reason}")
+            log_details(e, log)
             continue
         (summary.skipped if r.skipped else summary.done).append(scene.id)
     return summary

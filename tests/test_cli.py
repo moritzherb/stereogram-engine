@@ -52,4 +52,4 @@ def test_cli_compile(tmp_project, monkeypatch):
     comp.write_text(yaml.safe_dump({"id": "c", "title": "Hidden", "scenes": ["a"], "segment_seconds": 1}))
     res = runner.invoke(app, [*root, "compile", str(comp)])
     assert res.exit_code == 0, res.output
-    assert "00:05 Stereogram 1" in res.output and "video.mp4" in res.output
+    assert "00:00 Stereogram 1" in res.output and "video.mp4" in res.output

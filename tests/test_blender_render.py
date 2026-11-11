@@ -102,3 +102,10 @@ def test_swim_past_crosses_frame(tmp_path):
 
     assert cx(fr[-1]) - cx(fr[0]) > 0.5 * W
     assert all(_inside_safe(f) for f in fr)
+
+
+def test_reveal_uses_widest_pose(tmp_path):
+    proc, out = run_job(tmp_path, {"text3d": "HELLO"}, motion="spin", reveal=True)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    meta = json.loads((out / "meta.json").read_text())
+    assert meta["reveal_frame"] in (0, 1, 2)  # near face-on, not the middle frame (5) turned 30 degrees away

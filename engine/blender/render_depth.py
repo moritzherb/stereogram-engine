@@ -458,8 +458,28 @@ def render_job_frames(scene, rig, out_dir):
     return sum(times) / len(times)
 
 
-def render_reveal(scene, rig, out_dir, needs_clay):
-    rig.apply(rig.frames // 2)
+def pick_reveal_frame(rig):
+    """The most readable pose: facing the camera, at full size, near the centre.
+
+    Judged from the motion preset (a turned-away or still-small object reads
+    badly in the answer image). Near-ties go to the frame closest to the middle.
+    """
+    step = max(1, rig.frames // 300)
+    scores = {}
+    m = rig.motion_obj
+    for i in range(0, rig.frames, step):
+        rig.apply(i)
+        score = math.cos(m.rotation_euler[2]) * m.scale[0]
+        if rig.travel:
+            score -= 0.5 * abs(m.location[0]) / rig.travel
+        scores[i] = score
+    best = max(scores.values())
+    near = [i for i, sc in scores.items() if sc >= best - 0.005 * abs(best)]
+    return min(near, key=lambda i: abs(i - rig.frames // 2))
+
+
+def render_reveal(scene, rig, out_dir, needs_clay, frame):
+    rig.apply(frame)
     if needs_clay:
         mat = clay_material()
         for o in rig.objects:
@@ -508,9 +528,11 @@ def run_job(job):
     rig.normalise()
     frame_camera(scene, rig, job)
     spf = render_job_frames(scene, rig, out_dir)
+    reveal_frame = pick_reveal_frame(rig)
     if job.get("reveal"):
-        render_reveal(scene, rig, out_dir, needs_clay="model" not in src)
-    write_meta(out_dir, {"frames": rig.frames, "clips": clips, "seconds_per_frame": spf, "engine": "CYCLES"})
+        render_reveal(scene, rig, out_dir, needs_clay="model" not in src, frame=reveal_frame)
+    write_meta(out_dir, {"frames": rig.frames, "clips": clips, "seconds_per_frame": spf, "engine": "CYCLES",
+                         "reveal_frame": reveal_frame})
 
 
 def main():

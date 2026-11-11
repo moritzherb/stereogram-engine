@@ -85,7 +85,14 @@ def preview(ctx: typer.Context, scene_file: Path = typer.Argument(..., help="Sce
     except SceneError as e:
         typer.echo(str(e))
         raise typer.Exit(1)
-    result = render_scene(scene, project, _depth_source(project, typer.echo), preview=True, log=typer.echo)
+    from engine.pipeline import log_details
+
+    try:
+        result = render_scene(scene, project, _depth_source(project, typer.echo), preview=True, log=typer.echo)
+    except Exception as e:  # noqa: BLE001 - show a plain message, never a traceback
+        typer.echo(f"Preview failed: {getattr(e, 'reason', None) or e}")
+        log_details(e, typer.echo)
+        raise typer.Exit(1)
     typer.echo(f"Preview: {result.outputs[0]}")
 
 
@@ -105,6 +112,9 @@ def compile_cmd(ctx: typer.Context,
         raise typer.Exit(1)
     except MissingSegments as e:
         typer.echo(f"{e}. Run: stereo render scenes/")
+        raise typer.Exit(1)
+    except Exception as e:  # noqa: BLE001 - show a plain message, never a traceback
+        typer.echo(f"Compile failed: {e}")
         raise typer.Exit(1)
     typer.echo(f"\nVideo: {video}")
     typer.echo("Chapters (paste into the YouTube description):")

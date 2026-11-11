@@ -23,7 +23,7 @@ and follow the steps.
    git checkout claude/stereogram-engine-plan-9la0b4
    python3.11 -m venv .venv
    source .venv/bin/activate
-   pip install -e .
+   pip install --prefer-binary -e .
    ```
 
 4. **Check everything works:**
