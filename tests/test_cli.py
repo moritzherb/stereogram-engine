@@ -36,3 +36,20 @@ def test_cli_without_blender(tmp_project, monkeypatch, tmp_path):
     write_scene(tmp_project, "a.yaml", shape="heart", duration=1)
     res = runner.invoke(app, ["--project", str(tmp_project.root), "render", str(tmp_project.scenes)])
     assert res.exit_code == 1 and "stereo check" in res.output
+
+
+def test_cli_compile(tmp_project, monkeypatch):
+    import yaml
+
+    monkeypatch.setenv("STEREO_DEPTH_SOURCE", "fake")
+    write_scene(tmp_project, "a.yaml", shape="heart", duration=1, formats=["long"])
+    comp = tmp_project.compilations / "c.yaml"
+    comp.write_text(yaml.safe_dump({"id": "c", "title": "Hidden", "scenes": ["a", "ghost"], "segment_seconds": 1}))
+    root = ["--project", str(tmp_project.root)]
+    assert runner.invoke(app, [*root, "render", str(tmp_project.scenes)]).exit_code == 0
+    res = runner.invoke(app, [*root, "compile", str(comp)])
+    assert res.exit_code == 1 and "ghost" in res.output
+    comp.write_text(yaml.safe_dump({"id": "c", "title": "Hidden", "scenes": ["a"], "segment_seconds": 1}))
+    res = runner.invoke(app, [*root, "compile", str(comp)])
+    assert res.exit_code == 0, res.output
+    assert "00:05 Stereogram 1" in res.output and "video.mp4" in res.output

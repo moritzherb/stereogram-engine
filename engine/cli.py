@@ -87,3 +87,25 @@ def preview(ctx: typer.Context, scene_file: Path = typer.Argument(..., help="Sce
         raise typer.Exit(1)
     result = render_scene(scene, project, _depth_source(project, typer.echo), preview=True, log=typer.echo)
     typer.echo(f"Preview: {result.outputs[0]}")
+
+
+@app.command("compile")
+def compile_cmd(ctx: typer.Context,
+                compilation_file: Path = typer.Argument(..., help="Compilation file")) -> None:
+    """Build a long 16:9 video from rendered scenes (output/compilations/<id>/)."""
+    from engine.compile import MissingSegments, compile_long_video
+    from engine.scene import SceneError, load_compilation
+
+    project = _project(ctx)
+    try:
+        comp = load_compilation(compilation_file, project)
+        video = compile_long_video(comp, project, log=typer.echo)
+    except SceneError as e:
+        typer.echo(str(e))
+        raise typer.Exit(1)
+    except MissingSegments as e:
+        typer.echo(f"{e}. Run: stereo render scenes/")
+        raise typer.Exit(1)
+    typer.echo(f"\nVideo: {video}")
+    typer.echo("Chapters (paste into the YouTube description):")
+    typer.echo((video.parent / "chapters.txt").read_text())

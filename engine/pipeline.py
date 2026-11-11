@@ -235,7 +235,7 @@ def render_scene(scene: Scene, project: Project, depth_source: DepthSource, *, p
     credits = out_dir / "credits.txt"
     credits.write_text(_credits(scene, track), encoding="utf-8")
     result.outputs.append(credits)
-    meta = {"render_hash": render_hash(scene), "outputs": [p.name for p in result.outputs],
+    meta = {"render_hash": render_hash(scene), "title": scene.title, "outputs": [p.name for p in result.outputs],
             "warnings": [w.code for w in result.warnings]}
     tmp = out_dir / "render.json.part"
     tmp.write_text(json.dumps(meta, indent=2))
