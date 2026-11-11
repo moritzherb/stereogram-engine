@@ -11,3 +11,20 @@ def random_strip(height: int, width: int, seed: int = 0) -> np.ndarray:
 @pytest.fixture
 def strip():
     return random_strip(64, 154, seed=1)
+
+
+@pytest.fixture
+def tmp_project(tmp_path):
+    """An empty project folder (with a space in its path) plus the real font."""
+    import shutil
+    from pathlib import Path
+
+    from engine.project import Project
+
+    root = tmp_path / "My Videos" / "stereo"
+    for sub in ("assets/models", "assets/patterns", "assets/music", "assets/fonts", "scenes", "compilations"):
+        (root / sub).mkdir(parents=True)
+    repo_fonts = Path(__file__).resolve().parents[1] / "assets" / "fonts"
+    for f in repo_fonts.iterdir():
+        shutil.copy(f, root / "assets" / "fonts" / f.name)
+    return Project(root)

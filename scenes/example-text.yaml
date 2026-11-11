@@ -1,0 +1,10 @@
+# The word HELLO, spinning slowly, hidden in a cells pattern.
+id: example-text
+text3d: "HELLO"
+motion: spin
+speed: 0.5
+duration: 20
+pattern:
+  generate: cells
+  palette: ocean
+title: "Hidden word"
