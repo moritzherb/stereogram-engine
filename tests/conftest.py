@@ -28,3 +28,28 @@ def tmp_project(tmp_path):
     for f in repo_fonts.iterdir():
         shutil.copy(f, root / "assets" / "fonts" / f.name)
     return Project(root)
+
+
+@pytest.fixture
+def fake_blender(tmp_path, monkeypatch):
+    """Path to an executable fake Blender plus its call-count file."""
+    import stat
+    import sys
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parent / "fake_blender.py"
+    exe = tmp_path / "fake blender bin"
+    exe.write_text(f"#!/bin/sh\nexec '{sys.executable}' '{script}' \"$@\"\n")
+    exe.chmod(exe.stat().st_mode | stat.S_IEXEC)
+    count = tmp_path / "calls.txt"
+    monkeypatch.setenv("FAKE_BLENDER_COUNT", str(count))
+    monkeypatch.setenv("PYTHONPATH", str(Path(__file__).resolve().parents[1]))
+
+    class Fake:
+        path = exe
+
+        @staticmethod
+        def calls() -> int:
+            return int(count.read_text()) if count.exists() else 0
+
+    return Fake

@@ -453,6 +453,7 @@ def render_job_frames(scene, rig, out_dir):
         times.append(time.perf_counter() - t0)
         src = os.path.join(raw, f"depth_{scene.frame_current:04d}.png")
         os.replace(src, os.path.join(out_dir, f"depth_{i + 1:04d}.png"))
+        print(f"FRAME {i + 1}/{rig.frames}", flush=True)
     os.rmdir(raw)
     return sum(times) / len(times)
 

@@ -52,17 +52,27 @@ class ArrayDepthSequence:
 
 
 class PngDepthSequence:
-    """Frames depth_0001.png ... (16-bit gray) plus meta.json and optional reveal.png."""
+    """Frames depth_0001.png ... (16-bit gray) plus meta.json and optional reveal.png.
 
-    def __init__(self, directory: Path, fps: int = 30):
+    With `size=(width, height)` frames and the reveal image are scaled to that
+    size on read (depth is rendered at reduced resolution to save time).
+    """
+
+    def __init__(self, directory: Path, fps: int = 30, size: tuple[int, int] | None = None):
         self.directory = Path(directory)
         self.fps = fps
         meta = json.loads((self.directory / "meta.json").read_text())
         self._count = int(meta["frames"])
         with Image.open(self._path(0)) as first:
-            self.width, self.height = first.size
+            self._native = first.size
+        self.width, self.height = size or self._native
         reveal_path = self.directory / "reveal.png"
-        self.reveal = np.asarray(Image.open(reveal_path).convert("RGB")) if reveal_path.exists() else None
+        self.reveal = None
+        if reveal_path.exists():
+            img = Image.open(reveal_path).convert("RGB")
+            if img.size != (self.width, self.height):
+                img = img.resize((self.width, self.height), Image.LANCZOS)
+            self.reveal = np.asarray(img)
 
     def _path(self, i: int) -> Path:
         return self.directory / f"depth_{i + 1:04d}.png"
@@ -78,4 +88,8 @@ class PngDepthSequence:
         if arr.ndim == 3:
             arr = arr[..., 0]
         scale = 65535.0 if arr.dtype != np.uint8 else 255.0
-        return (arr.astype(np.float32) / scale).clip(0.0, 1.0)
+        depth = (arr.astype(np.float32) / scale).clip(0.0, 1.0)
+        if (self.width, self.height) != self._native:
+            img = Image.fromarray(depth, mode="F").resize((self.width, self.height), Image.BILINEAR)
+            depth = np.asarray(img, dtype=np.float32).clip(0.0, 1.0)
+        return depth

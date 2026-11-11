@@ -8,7 +8,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from engine.depth.blender_source import SCRIPT, SUPPORTED_VERSIONS, blender_version, find_blender
+from engine.depth.blender_source import SUPPORTED_VERSIONS, blender_command, blender_version, find_blender
 
 FONT = Path(__file__).resolve().parents[1] / "assets" / "fonts" / "Lato-Regular.ttf"
 SHORT_FRAMES = 900  # 30 s at 30 fps
@@ -86,7 +86,7 @@ def _check_blender() -> CheckItem:
         job = Path(tmp) / "job.json"
         out = Path(tmp) / "out"
         job.write_text(json.dumps({"probe": True, "out_dir": str(out), "width": 540, "height": 960}))
-        proc = subprocess.run([str(path), "-b", "--factory-startup", "--python", str(SCRIPT), "--", str(job)],
+        proc = subprocess.run(blender_command(path, job),
                               capture_output=True, text=True, timeout=600)
         meta_file = out / "meta.json"
         if proc.returncode != 0 or not meta_file.exists():
