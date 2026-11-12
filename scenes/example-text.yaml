@@ -7,6 +7,6 @@ motion_settings:
   seconds: 8      # one full left-right-left cycle
 duration: 20
 pattern:
-  generate: cells
+  generate: swirl
   palette: ocean
 title: "Hidden word"

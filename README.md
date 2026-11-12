@@ -126,7 +126,8 @@ palettes `default`, `ocean`, `sunset`, `forest`, `candy`, `mono`.
 **Keeping it hidden:** the turning motions (`sway`, `tilt`, `rock`) keep the object in place, so it
 only appears when the viewer focuses. Motions that move the object around (`float`, `bob`,
 `swim_past`) give it away more easily without focusing. Soft edges (`edge_softness`) and, optionally,
-`pattern_drift` hide it even better.
+`pattern_drift` hide it even better. Smooth, organic patterns (`swirl`, `noise`, busy photos) hide
+the object much better than patterns with straight, high-contrast lines (`cells`, `stripes`).
 
 Tips: big, bold shapes read best; fine details (fingers, thin legs) disappear.
 Hidden 3D text uses solid, rounded letters; short words (up to about 8 letters) work best.
