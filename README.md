@@ -129,8 +129,12 @@ palettes `default`, `ocean`, `sunset`, `forest`, `candy`, `mono`.
 only appears when the viewer focuses. Motions that move the object around (`float`, `bob`,
 `swim_past`) give it away more easily without focusing. Soft edges (`edge_softness`) and, optionally,
 `pattern_drift` hide it even better. `lift` balances the other way: higher makes the object pop out
-more clearly once seen, lower blends it into the background. Smooth, organic patterns (`swirl`, `noise`, busy photos) hide
-the object much better than patterns with straight, high-contrast lines (`cells`, `stripes`).
+more clearly once seen, lower blends it into the background.
+
+Busy, multicoloured, organic patterns (`swirl` with the `default`, `sunset` or `candy` palette, busy
+photos) hide the object best. Calm patterns (`noise`, one-colour palettes like `ocean`) and patterns
+with straight, high-contrast lines (`cells`, `stripes`) let the outlines of hidden letters show
+through as faint seams.
 
 Tips: big, bold shapes read best; fine details (fingers, thin legs) disappear.
 Hidden 3D text uses solid block letters in a heavy font; short words (up to about 8 letters) work
