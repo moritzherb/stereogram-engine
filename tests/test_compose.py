@@ -110,6 +110,17 @@ def test_disabled_text_lines(tmp_project):
     assert np.array_equal(comp.frame(black, 29.5), black)
 
 
+def test_short_countdown_top_right_only_with_reveal(tmp_project):
+    black = np.zeros((1920, 1080, 3), np.uint8)
+    reveal = np.full((1920, 1080, 3), 200, np.uint8)
+    scene = _scene(tmp_project, reveal="on", text={"top": None, "bottom": None, "end": None})
+    pts = _changed(ShortComposer(scene, SHORT, FONT, reveal).frame(black, 10.0))
+    assert len(pts) > 0
+    assert pts[:, 0].min() > 0.14 * 1920 and pts[:, 0].max() < 0.27 * 1920 and pts[:, 1].min() > 0.78 * 1080
+    no_reveal = _scene(tmp_project, text={"top": None, "bottom": None, "end": None})
+    assert np.array_equal(ShortComposer(no_reveal, SHORT, FONT, None).frame(black, 10.0), black)
+
+
 def test_short_reveal_at_end(tmp_project):
     reveal = np.full((1920, 1080, 3), 200, np.uint8)
     comp = ShortComposer(_scene(tmp_project, reveal="on"), SHORT, FONT, reveal)
@@ -128,17 +139,29 @@ def test_segment_total_seconds():
     assert seg.total_seconds == 10.0 + LONG_REVEAL + LONG_FADE_OUT
 
 
-def test_segment_counter_and_progress():
+def _changed(out):
+    return np.argwhere(np.any(out != 0, axis=2))
+
+
+def test_segment_counter_and_countdown_ring():
     seg, _ = _segment()
     black = np.zeros((1080, 1920, 3), np.uint8)
-    out = seg.frame(black, 5.0)
-    bar_rows = np.nonzero(np.any(out[1000:] != 0, axis=(1, 2)))[0] + 1000
-    assert len(bar_rows) > 0
-    bar = out[bar_rows[0]]
-    filled = np.nonzero(np.any(bar != 0, axis=1))[0]
-    assert filled.max() / 1920 == pytest.approx(0.5, abs=0.02)
-    changed = np.argwhere(np.any(out[:1000] != 0, axis=2))
-    assert changed[:, 0].max() < 0.15 * 1080 and changed[:, 1].max() < 0.15 * 1920
+    pts = _changed(seg.frame(black, 5.0))
+    top_left = pts[(pts[:, 0] < 0.15 * 1080) & (pts[:, 1] < 0.15 * 1920)]
+    bottom_right = pts[(pts[:, 0] > 0.80 * 1080) & (pts[:, 1] > 0.85 * 1920)]
+    assert len(top_left) > 0 and len(bottom_right) > 0
+    assert len(top_left) + len(bottom_right) == len(pts)  # nothing else on screen (no progress bar)
+
+
+def test_countdown_ring_runs_out():
+    seg, _ = _segment()
+    black = np.zeros((1080, 1920, 3), np.uint8)
+    corner = (slice(int(0.8 * 1080), 1080), slice(int(0.85 * 1920), 1920))
+    early = seg.frame(black, 0.5)[corner]
+    late = seg.frame(black, 9.0)[corner]
+    assert (early > 200).sum() > 1.5 * (late > 200).sum()  # the bright arc shrinks
+    after = seg.frame(black, 11.0)
+    assert np.array_equal(after[corner], seg.frame(np.full_like(black, 255), 11.0)[corner])  # gone at reveal
 
 
 def test_segment_reveal_after_stereo():
@@ -146,8 +169,18 @@ def test_segment_reveal_after_stereo():
     a = seg.frame(np.zeros((1080, 1920, 3), np.uint8), 11.0)
     b = seg.frame(np.full((1080, 1920, 3), 255, np.uint8), 11.0)
     assert np.array_equal(a, b)  # fully revealed: stereogram no longer visible
-    band = slice(int(0.72 * 1080), int(0.80 * 1080))
-    assert not np.array_equal(a[band], fit_reveal(reveal, LONG)[band])  # title drawn
+
+
+def test_reveal_title_sits_below_the_model():
+    red = np.zeros((1080, 1920, 3), np.uint8)
+    red[..., 0] = 250
+    seg = SegmentComposer(LONG, FONT, index=1, total=2, title="Hidden heart", stereo_seconds=2.0, reveal_img=red)
+    out = seg.frame(np.zeros_like(red), 3.0)
+    strip_top = round(0.86 * 1080)
+    model_rows = np.nonzero((out[:, 300:1600] == (250, 0, 0)).all(axis=2).any(axis=1))[0]
+    assert model_rows.max() < strip_top  # the reveal image stays above the strip
+    title = np.argwhere(np.any(out[:, 300:1600] != fit_reveal(red, LONG, bottom_strip=0.14)[:, 300:1600], axis=2))
+    assert len(title) > 0 and title[:, 0].min() >= strip_top
 
 
 def test_segment_fades_to_black():
@@ -159,6 +192,8 @@ def test_segment_fades_to_black():
 def test_fit_reveal_letterboxes():
     out = fit_reveal(np.full((100, 100, 3), 255, np.uint8), LONG)
     assert out.shape == (1080, 1920, 3) and out[540, 960].min() == 255 and out[540, 10].max() < 255
+    strip = fit_reveal(np.full((100, 100, 3), 255, np.uint8), LONG, bottom_strip=0.14)
+    assert strip[1070, 960].max() < 255 and strip[400, 960].min() == 255
 
 
 def test_card():

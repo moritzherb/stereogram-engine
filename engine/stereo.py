@@ -83,7 +83,7 @@ def _link_row(z, eye, mu, same, wmax):
 
 
 @njit(parallel=True, cache=True)
-def _render(depth, pattern, eye, mu, period, radius, factor):
+def _render(depth, pattern, eye, mu, period, radius, factor, shift):
     """Per row: upsample depth x factor, link, colour, average back down."""
     height, width_out = depth.shape
     width = width_out * factor
@@ -120,7 +120,7 @@ def _render(depth, pattern, eye, mu, period, radius, factor):
             acc1 = 0
             acc2 = 0
             for k in range(factor):
-                col = ((best[root[xo * factor + k]] - centre) % period) // factor
+                col = ((best[root[xo * factor + k]] - centre - shift) % period) // factor
                 acc0 += prow[col, 0]
                 acc1 += prow[col, 1]
                 acc2 += prow[col, 2]
@@ -138,11 +138,13 @@ def render_stereogram(
     depth_strength: float = 0.33,
     oversample: int = 3,
     crosseyed: bool = False,
+    shift: int = 0,
 ) -> np.ndarray:
     """Render one stereogram frame.
 
     depth: float32 (H, W) in [0, 1], 1 = nearest. pattern: uint8 strip
-    (Hp, repeat_px, 3). Returns uint8 (H, W, 3).
+    (Hp, repeat_px, 3). Returns uint8 (H, W, 3). `shift` moves the whole
+    pattern right by that many pixels (used for slow pattern drift).
     """
     if pattern.shape[1] != repeat_px:
         raise ValueError(f"pattern width {pattern.shape[1]} != repeat_px {repeat_px}")
@@ -153,4 +155,5 @@ def render_stereogram(
     period = repeat_px * oversample
     eye = 2.0 * period
     radius = int(np.ceil(depth_strength * eye / 4.0)) + 1
-    return _render(d, np.ascontiguousarray(pattern), eye, float(depth_strength), period, radius, oversample)
+    return _render(d, np.ascontiguousarray(pattern), eye, float(depth_strength), period, radius, oversample,
+                   int(shift) * oversample)

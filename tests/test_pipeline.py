@@ -151,3 +151,17 @@ def test_edge_softness_is_applied(tmp_project):
     hard = prepare_depth(step, _scene(tmp_project, advanced={"edge_softness": 0}), SHORT)
     assert np.array_equal(hard, step)
     assert np.abs(np.diff(soft, axis=1)).max() < 0.2
+
+
+def test_pattern_drift_changes_frames(tmp_project):
+    import numpy as np
+
+    from engine.formats import SHORT
+    from engine.pipeline import _FrameRenderer, pattern_strip
+
+    scene = _scene(tmp_project, advanced={"pattern_drift": 30})
+    seq = FakeDepthSource().render(scene, SHORT)
+    fr = _FrameRenderer(scene, SHORT, seq, pattern_strip(scene, SHORT.repeat_px))
+    frames = [img for i, img in fr.frames(lambda m: None, "x") if i in (0, 30)]
+    # one second of drift = 30 px: the far-away background has moved by 30 px
+    assert np.array_equal(frames[1][:100, 30:], frames[0][:100, :-30])

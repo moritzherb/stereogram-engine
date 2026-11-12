@@ -83,6 +83,8 @@ class _FrameRenderer:
     def __init__(self, scene: Scene, fmt: Format, seq, strip: np.ndarray):
         self.scene, self.fmt, self.seq, self.strip = scene, fmt, seq, strip
         self.repeat = _repeat_px(scene, fmt)
+        base = SHORT if fmt.name.startswith("short") else LONG
+        self.drift = scene.advanced.pattern_drift * fmt.width / base.width
         n = len(seq)
         self.sample_ids = sorted({0, n // 2, n - 1})
         self.samples: list[tuple[np.ndarray, np.ndarray]] = []
@@ -95,7 +97,8 @@ class _FrameRenderer:
             depth = prepare_depth(self.seq.frame(i), self.scene, self.fmt)
             img = render_stereogram(depth, self.strip, repeat_px=self.repeat,
                                     depth_strength=self.scene.advanced.depth_strength,
-                                    crosseyed=self.scene.advanced.viewing == "crosseyed")
+                                    crosseyed=self.scene.advanced.viewing == "crosseyed",
+                                    shift=round(i / self.seq.fps * self.drift))
             if i in self.sample_ids:
                 self.samples.append((depth, img))
             if i == n // 2:

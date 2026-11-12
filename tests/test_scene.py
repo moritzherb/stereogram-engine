@@ -194,3 +194,11 @@ def test_examples_load():
         load_scene(f, project)
     for f in (REPO / "compilations").glob("*.yaml"):
         load_compilation(f, project)
+
+
+def test_pattern_drift_option(tmp_project):
+    s = load_scene(write(tmp_project, "d.yaml", {"id": "d", "shape": "heart"}), tmp_project)
+    assert s.advanced.pattern_drift == 0
+    s = load_scene(write(tmp_project, "d.yaml", {"id": "d", "shape": "heart", "advanced": {"pattern_drift": 15}}),
+                   tmp_project)
+    assert s.advanced.pattern_drift == 15

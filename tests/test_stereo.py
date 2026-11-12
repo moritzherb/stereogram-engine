@@ -58,3 +58,11 @@ def test_crosseyed_inverts_depth(strip):
     a = render_stereogram(d, strip, repeat_px=154, crosseyed=True)
     b = render_stereogram(1 - d, strip, repeat_px=154)
     assert np.array_equal(a, b)
+
+
+def test_pattern_shift_moves_whole_pattern(strip):
+    flat = np.zeros((64, 1080), np.float32)
+    base = render_stereogram(flat, strip, repeat_px=154)
+    moved = render_stereogram(flat, strip, repeat_px=154, shift=10)
+    assert np.array_equal(moved[:, 10:], base[:, :-10])
+    assert np.array_equal(render_stereogram(flat, strip, repeat_px=154, shift=154), base)

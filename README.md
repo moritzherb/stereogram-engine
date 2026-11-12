@@ -74,7 +74,10 @@ Only `id` and one of `model`, `text3d` or `shape` are required:
 id: dolphin-jump                # lowercase letters, numbers and dashes
 model: models/dolphin/dolphin.glb   # or: text3d: "HELLO"   or: shape: heart
 animation: Swim                 # a clip inside the model (optional)
-motion: swim_past               # a movement preset (optional, combines with animation)
+motion: sway                    # a movement preset (optional, combines with animation)
+motion_settings:                # optional; leave out for the gentle defaults
+  amount: 20                    # how far: degrees for turns, % of the size for movement
+  seconds: 8                    # how slow: length of one full cycle
 speed: 1.0                      # lower = slower
 duration: 30                    # seconds (1 to 180)
 pattern: patterns/ocean.jpg     # your image, or a generated pattern:
@@ -84,6 +87,8 @@ text:
   top: "This is a stereogram"   # shown for the first 4 seconds
   bottom: "What do you see?"
   end: "Comment what you see"   # shown for the last 3 seconds (null = off)
+  bottom_y: 0.85                # optional: exact height of the bottom line (0.5 to 0.95)
+platform: tiktok                # tiktok, reels, shorts, facebook or clean (where the bottom line sits)
 music: auto                     # auto (picks from assets/music), none, or music/my-song.mp3
 reveal: auto                    # auto = Shorts: no answer, long videos: answer shown
 title: "Hidden dolphin"         # used for the thumbnail and long-video reveal
@@ -91,6 +96,8 @@ advanced:
   depth_strength: 0.33          # 0.1 to 0.6, how far the object pops out
   pattern_repeat: auto          # pattern width in pixels
   viewing: parallel             # parallel (look through) or crosseyed
+  edge_softness: 1.0            # 0 to 3: how gently the object rises out of the background
+  pattern_drift: 0              # pixels per second the whole pattern slides sideways (try 10-20)
 ```
 
 Text must be plain: emojis are rejected.
@@ -102,19 +109,35 @@ palettes `default`, `ocean`, `sunset`, `forest`, `candy`, `mono`.
 
 **Motions:**
 
-| Motion | What it does |
-| --- | --- |
-| `spin` | Turns around slowly |
-| `float` | Drifts up and down, gently swaying |
-| `bob` | Faster up-and-down bounce |
-| `zoom_in` | Grows from small to full size |
-| `fly_toward` | Comes out of the screen towards the viewer (very strong 3D effect) |
-| `swim_past` | Crosses the screen from left to right |
-| `ripple` | Waves run across the surface |
-| `pulse` | Beats like a heart |
+| Motion | What it does | `amount` means (default) | `seconds` (default) |
+| --- | --- | --- | --- |
+| `sway` | Turns to one side and back, then to the other side and back | degrees (20) | one full cycle (8) |
+| `tilt` | Nods forward and back | degrees (12) | 8 |
+| `rock` | Tips left and right | degrees (10) | 8 |
+| `spin` | Turns all the way around | degrees per cycle (360) | 12 |
+| `float` | Drifts gently up and down | % of size (3) | 6 |
+| `bob` | Quicker up-and-down bounce | % of size (5) | 2.5 |
+| `zoom_in` | Grows to full size | start size % (70) | whole video |
+| `fly_toward` | Comes towards the viewer | start distance % of size (75) | whole video |
+| `swim_past` | Crosses the screen left to right | object width % of the screen (30) | whole video |
+| `ripple` | Waves run across the surface | wave height % (3) | 2 |
+| `pulse` | Beats like a heart | growth % (5) | one beat (1) |
+
+**Keeping it hidden:** the turning motions (`sway`, `tilt`, `rock`) keep the object in place, so it
+only appears when the viewer focuses. Motions that move the object around (`float`, `bob`,
+`swim_past`) give it away more easily without focusing. Soft edges (`edge_softness`) and, optionally,
+`pattern_drift` hide it even better.
 
 Tips: big, bold shapes read best; fine details (fingers, thin legs) disappear.
-Slow to medium speed is best. Motion towards or away from the viewer is the most impressive.
+Hidden 3D text uses solid, rounded letters; short words (up to about 8 letters) work best.
+
+**Text position per platform:** the bottom line sits at 80 % of the height for `tiktok`, `reels`,
+`shorts` and `facebook` (just above the apps' caption area), and at 88 % for `clean` (posted without
+a caption). These are starting values; use `text.bottom_y` to fine-tune after your first uploads.
+
+**Countdown:** when the answer is revealed (always in long videos, `reveal: on` in Shorts), a small
+ring with the seconds left counts down until the reveal: bottom-right in long videos, top-right in
+Shorts (the apps' buttons cover the bottom-right corner there).
 
 ## Long videos
 
