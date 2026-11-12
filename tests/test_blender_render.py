@@ -145,3 +145,23 @@ def test_default_float_is_subtle(tmp_path):
     fr, _ = frames(out)
     ys = [_centroid(f)[1] for f in fr]
     assert max(ys) - min(ys) < 0.04 * H
+
+
+def _roundness(f):
+    obj = f > 0.02
+    top = f[obj].max()
+    slope = ((f > 0.02) & (f < 0.9 * top)).sum() / obj.sum()
+    ys, xs = np.nonzero(obj)
+    fill = obj.sum() / ((np.ptp(xs) + 1) * (np.ptp(ys) + 1))
+    return slope, fill
+
+
+@pytest.mark.parametrize("src,min_slope", [({"text3d": "HELLO"}, 0.3), ({"shape": "heart"}, 0.35),
+                                           ({"shape": "star"}, 0.3)])
+def test_solid_rounded_3d(tmp_path, src, min_slope):
+    proc, out = run_job(tmp_path, src, width=432, height=768, duration=0.1)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    slope, fill = _roundness(frames(out)[0][0])
+    assert slope >= min_slope, f"only {slope:.0%} of the surface is rounded"
+    if "text3d" in src:
+        assert fill >= 0.52, f"letters too thin ({fill:.0%} fill)"  # thin default font: 0.47

@@ -31,6 +31,11 @@ def test_job_carries_motion_settings(tmp_project):
     assert (job["motion_amount"], job["motion_seconds"]) == (None, None)
 
 
+def test_job_uses_bundled_heavy_font(tmp_project):
+    job = build_job(_scene(tmp_project), SHORT, tmp_project.cache / "x")
+    assert job["font"].endswith("Montserrat-ExtraBold.ttf")
+
+
 def test_render_returns_full_size_sequence(tmp_project, fake_blender):
     src = BlenderDepthSource(fake_blender.path, tmp_project.cache)
     seq = src.render(_scene(tmp_project), SHORT)

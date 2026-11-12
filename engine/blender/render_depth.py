@@ -14,6 +14,7 @@ import time
 
 import bpy
 import mathutils
+import numpy as np
 
 
 def read_job():
@@ -176,31 +177,56 @@ def clay_material():
     return mat
 
 
-def _curve_object(name, points, extrude, bevel):
-    curve = bpy.data.curves.new(name, type="CURVE")
-    curve.dimensions = "2D"
-    curve.fill_mode = "BOTH"
-    curve.extrude = extrude
-    spline = curve.splines.new("POLY")
-    spline.points.add(len(points) - 1)
-    for p, (x, y) in zip(spline.points, points):
-        p.co = (x, y, 0.0, 1.0)
-    spline.use_cyclic_u = True
-    tmp = bpy.data.objects.new(name + "_curve", curve)
-    bpy.context.scene.collection.objects.link(tmp)
-    # Convert to a mesh and round the edges with a clamped bevel (a curve
-    # bevel shoots spikes out of sharp corners such as the heart's tips).
-    mesh = bpy.data.meshes.new_from_object(tmp.evaluated_get(bpy.context.evaluated_depsgraph_get()))
-    bpy.data.objects.remove(tmp, do_unlink=True)
+def _polygon_segments(points):
+    return [(points[i - 1], points[i]) for i in range(len(points))]
+
+
+def _pillow_object(name, segments, radius, step):
+    """A puffy, rounded solid from 2D outlines (holes allowed): it rises
+    smoothly from every edge to a domed top, like a cushion or a balloon
+    letter. `segments` are ((ax, ay), (bx, by)) outline pieces."""
+    seg = np.asarray(segments, dtype=np.float64)
+    x0, y0 = seg[:, :, 0].min(), seg[:, :, 1].min()
+    x1, y1 = seg[:, :, 0].max(), seg[:, :, 1].max()
+    nx, ny = int((x1 - x0) / step) + 3, int((y1 - y0) / step) + 3
+    gx = x0 + (np.arange(nx) - 1) * step
+    gy = y0 + (np.arange(ny) - 1) * step
+    X, Y = np.meshgrid(gx, gy, indexing="ij")
+    inside = np.zeros(X.shape, dtype=bool)
+    dist = np.full(X.shape, np.inf)
+    for (ax, ay), (bx, by) in seg:
+        dy = by - ay
+        if dy != 0:
+            inside ^= ((ay > Y) != (by > Y)) & (X < (bx - ax) * (Y - ay) / dy + ax)
+        dx = bx - ax
+        t = np.clip(((X - ax) * dx + (Y - ay) * dy) / (dx * dx + dy * dy + 1e-12), 0.0, 1.0)
+        dist = np.minimum(dist, np.hypot(X - ax - t * dx, Y - ay - t * dy))
+    u = np.clip(dist / radius, 0.0, 1.0)
+    Z = np.where(inside, radius * np.sqrt(1.0 - (1.0 - u) ** 2), 0.0)
+    cell = inside[:-1, :-1] | inside[1:, :-1] | inside[1:, 1:] | inside[:-1, 1:]
+    ci, cj = np.nonzero(cell)
+    idx = np.arange(nx * ny).reshape(nx, ny)
+    quads = np.stack([idx[ci, cj], idx[ci + 1, cj], idx[ci + 1, cj + 1], idx[ci, cj + 1]], axis=1)
+    front = np.stack([X.ravel(), Y.ravel(), Z.ravel()], axis=1)
+    back = front * np.array([1.0, 1.0, -1.0])
+    verts = np.concatenate([front, back]).tolist()
+    faces = np.concatenate([quads, quads[:, ::-1] + nx * ny]).tolist()
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata(verts, [], faces)
+    mesh.update()
+    mesh.polygons.foreach_set("use_smooth", [True] * len(mesh.polygons))
     obj = bpy.data.objects.new(name, mesh)
     bpy.context.scene.collection.objects.link(obj)
-    mod = obj.modifiers.new("Bevel", "BEVEL")
-    mod.width = bevel
-    mod.segments = 4
-    mod.limit_method = "ANGLE"
-    mod.use_clamp_overlap = True
     obj.rotation_euler = (math.pi / 2, 0.0, 0.0)  # face the camera (-Y)
     return obj
+
+
+def _shape_pillow(name, points, roundness):
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    size = min(max(xs) - min(xs), max(ys) - min(ys))
+    return _pillow_object(name, _polygon_segments(points), roundness * size / 2,
+                          max(max(xs) - min(xs), max(ys) - min(ys)) / 160)
 
 
 def build_shape(name):
@@ -224,30 +250,43 @@ def build_shape(name):
             x = 16 * math.sin(t) ** 3
             y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
             pts.append((x / 16.0, y / 16.0))
-        return [_curve_object("Heart", pts, 0.2, 0.12)]
+        return [_shape_pillow("Heart", pts, 0.45)]
     elif name == "star":
         pts = []
         for k in range(10):
             r = 1.0 if k % 2 == 0 else 0.45
             a = math.pi / 2 + k * math.pi / 5
             pts.append((r * math.cos(a), r * math.sin(a)))
-        return [_curve_object("Star", pts, 0.2, 0.08)]
+        return [_shape_pillow("Star", pts, 0.35)]
     else:
         fail(4, f"IMPORT_FAILED: unknown shape {name}")
     return [bpy.context.active_object]
 
 
-def build_text(text):
-    curve = bpy.data.curves.new("Text", type="FONT")
+def build_text(text, font_path=None):
+    """Solid balloon letters: each stroke is fully rounded, holes stay open."""
+    curve = bpy.data.curves.new("TextOutline", type="FONT")
     curve.body = text
-    curve.extrude = 0.12
-    curve.bevel_depth = 0.02
+    if font_path and os.path.exists(font_path):
+        curve.font = bpy.data.fonts.load(font_path, check_existing=True)
     curve.align_x = "CENTER"
     curve.align_y = "CENTER"
-    obj = bpy.data.objects.new("Text", curve)
-    bpy.context.scene.collection.objects.link(obj)
-    obj.rotation_euler = (math.pi / 2, 0.0, 0.0)
-    return [obj]
+    curve.space_character = 1.08
+    curve.resolution_u = 6
+    tmp = bpy.data.objects.new("TextOutline", curve)
+    bpy.context.scene.collection.objects.link(tmp)
+    mesh = bpy.data.meshes.new_from_object(tmp.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    bpy.data.objects.remove(tmp, do_unlink=True)
+    uses = {}
+    for face in mesh.polygons:
+        for key in face.edge_keys:
+            uses[key] = uses.get(key, 0) + 1
+    v = mesh.vertices
+    segments = [((v[a].co.x, v[a].co.y), (v[b].co.x, v[b].co.y)) for (a, b), n in uses.items() if n == 1]
+    bpy.data.meshes.remove(mesh)
+    if not segments:
+        fail(4, "IMPORT_FAILED: the text has no visible letters")
+    return [_pillow_object("Text", segments, radius=0.09, step=0.012)]
 
 
 def import_model(path):
@@ -467,7 +506,10 @@ def frame_camera(scene, rig, job):
     cam_z = cz + (cy_frac - 0.5) * world_h
     cam_y = lo[1] - 10.0
     add_ortho_camera(scene, (cam_x, cam_y, cam_z), ortho)
-    setup_mist(scene, start=lo[1] - cam_y, depth=max(bd, 0.6 * max(bw, bh)))
+    # The depth range follows the object's real thickness, so thin objects
+    # such as words still get a rounded 3D surface (a small floor keeps
+    # perfectly flat objects from dividing by zero).
+    setup_mist(scene, start=lo[1] - cam_y, depth=max(bd, 0.05 * max(bw, bh)))
 
 
 def render_job_frames(scene, rig, out_dir):
@@ -546,7 +588,7 @@ def run_job(job):
     if "model" in src:
         objects = import_model(src["model"])
     elif "text3d" in src:
-        objects = build_text(src["text3d"])
+        objects = build_text(src["text3d"], job.get("font"))
     else:
         objects = build_shape(src["shape"])
     clips = sorted(a.name for a in bpy.data.actions)

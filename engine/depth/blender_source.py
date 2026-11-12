@@ -14,6 +14,7 @@ from typing import Callable
 
 from engine.depth.base import PngDepthSequence
 from engine.formats import Format
+from engine.project import BUNDLED_FONT
 from engine.scene import Scene, depth_hash
 
 MAC_APP = Path("/Applications/Blender.app/Contents/MacOS/Blender")
@@ -79,6 +80,7 @@ def build_job(scene: Scene, fmt: Format, out_dir: Path) -> dict:
         "samples": SAMPLES,
         "safe": asdict(fmt.safe),
         "reveal": True,
+        "font": str(BUNDLED_FONT),
         "out_dir": str(Path(out_dir).resolve()),
     }
 
