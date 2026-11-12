@@ -14,7 +14,7 @@ from engine.formats import Format
 from engine.patterns import PALETTES, STYLES
 from engine.project import Project
 
-MOTIONS = ("spin", "float", "bob", "zoom_in", "fly_toward", "swim_past", "ripple", "pulse")
+MOTIONS = ("sway", "tilt", "rock", "spin", "float", "bob", "zoom_in", "fly_toward", "swim_past", "ripple", "pulse")
 SHAPES = ("sphere", "cube", "torus", "cone", "heart", "star")
 PLATFORMS = ("tiktok", "reels", "shorts", "facebook", "clean")
 MODEL_EXTS = (".glb", ".gltf", ".fbx")
@@ -90,8 +90,16 @@ class GeneratedPattern(_Strict):
         return v
 
 
+class MotionSettings(_Strict):
+    """How strong and how slow a motion is. Empty = the motion's gentle default."""
+
+    amount: float | None = Field(None, gt=0, le=360)  # degrees for turns, % of size for movement
+    seconds: float | None = Field(None, gt=0, le=120)  # length of one full cycle
+
+
 class Advanced(_Strict):
     depth_strength: float = Field(0.33, ge=0.1, le=0.6)
+    edge_softness: float = Field(1.0, ge=0.0, le=3.0)
     pattern_repeat: int | Literal["auto"] = "auto"
     viewing: Literal["parallel", "crosseyed"] = "parallel"
 
@@ -103,6 +111,7 @@ class Scene(_Strict):
     shape: str | None = None
     animation: str | None = None
     motion: str | None = None
+    motion_settings: MotionSettings = Field(default_factory=MotionSettings)
     speed: float = Field(1.0, gt=0, le=10)
     duration: float = Field(30, ge=1, le=180)
     pattern: Path | GeneratedPattern | None = None
@@ -270,6 +279,7 @@ def depth_hash(scene: Scene, fmt: Format) -> str:
         "shape": scene.shape,
         "animation": scene.animation,
         "motion": scene.motion,
+        "motion_settings": scene.motion_settings.model_dump(),
         "speed": scene.speed,
         "duration": scene.duration,
         "format": [fmt.name, fmt.width, fmt.height, fmt.safe.top, fmt.safe.bottom, fmt.safe.left, fmt.safe.right],

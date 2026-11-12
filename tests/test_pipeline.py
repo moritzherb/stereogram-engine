@@ -137,3 +137,17 @@ def test_project_path_with_spaces(tmp_path):
     assert (root / "output" / "x" / "short.mp4").exists()
     meta = json.loads((root / "output" / "x" / "render.json").read_text())
     assert "short.mp4" in meta["outputs"]
+
+
+def test_edge_softness_is_applied(tmp_project):
+    import numpy as np
+
+    from engine.formats import SHORT
+    from engine.pipeline import prepare_depth
+
+    step = np.zeros((1920, 1080), np.float32)
+    step[:, 540:] = 1.0
+    soft = prepare_depth(step, _scene(tmp_project), SHORT)
+    hard = prepare_depth(step, _scene(tmp_project, advanced={"edge_softness": 0}), SHORT)
+    assert np.array_equal(hard, step)
+    assert np.abs(np.diff(soft, axis=1)).max() < 0.2

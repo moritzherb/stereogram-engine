@@ -23,6 +23,14 @@ def test_job_contents(tmp_project):
     assert job["out_dir"].startswith("/")
 
 
+def test_job_carries_motion_settings(tmp_project):
+    job = build_job(_scene(tmp_project, motion="sway", motion_settings={"amount": 12, "seconds": 5}), SHORT,
+                    tmp_project.cache / "x")
+    assert (job["motion_amount"], job["motion_seconds"]) == (12, 5)
+    job = build_job(_scene(tmp_project, motion="sway"), SHORT, tmp_project.cache / "x")
+    assert (job["motion_amount"], job["motion_seconds"]) == (None, None)
+
+
 def test_render_returns_full_size_sequence(tmp_project, fake_blender):
     src = BlenderDepthSource(fake_blender.path, tmp_project.cache)
     seq = src.render(_scene(tmp_project), SHORT)

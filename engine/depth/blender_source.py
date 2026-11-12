@@ -69,6 +69,8 @@ def build_job(scene: Scene, fmt: Format, out_dir: Path) -> dict:
         "source": source,
         "animation": scene.animation,
         "motion": scene.motion,
+        "motion_amount": scene.motion_settings.amount,
+        "motion_seconds": scene.motion_settings.seconds,
         "speed": scene.speed,
         "duration": scene.duration,
         "fps": FPS,

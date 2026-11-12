@@ -14,6 +14,7 @@ from PIL import Image
 from engine.checks import QualityWarning, check_frames, check_motion, check_pattern, check_safe_area
 from engine.compose import ShortComposer, thumbnail
 from engine.depth.base import DepthSource
+from engine.depth.soften import soften, softness_sigma
 from engine.encode import VideoWriter, copy_silent, mux_music, pick_music
 from engine.formats import LONG, SHORT, Format, preview_of
 from engine.patterns import generate_pattern, load_image_pattern
@@ -71,6 +72,11 @@ def _music_for(scene: Scene, project: Project) -> Path | None:
     return pick_music(project.music, scene.id)
 
 
+def prepare_depth(depth: np.ndarray, scene: Scene, fmt: Format) -> np.ndarray:
+    """Depth as it goes into the stereogram: with soft edges."""
+    return soften(depth, softness_sigma(scene.advanced.edge_softness, fmt))
+
+
 class _FrameRenderer:
     """Turns depth frames into stereogram frames, keeping a few for checks."""
 
@@ -86,7 +92,7 @@ class _FrameRenderer:
         n = len(self.seq)
         step = max(1, n // 10)
         for i in range(n):
-            depth = self.seq.frame(i)
+            depth = prepare_depth(self.seq.frame(i), self.scene, self.fmt)
             img = render_stereogram(depth, self.strip, repeat_px=self.repeat,
                                     depth_strength=self.scene.advanced.depth_strength,
                                     crosseyed=self.scene.advanced.viewing == "crosseyed")

@@ -109,3 +109,39 @@ def test_reveal_uses_widest_pose(tmp_path):
     assert proc.returncode == 0, proc.stderr[-2000:]
     meta = json.loads((out / "meta.json").read_text())
     assert meta["reveal_frame"] in (0, 1, 2)  # near face-on, not the middle frame (5) turned 30 degrees away
+
+
+def _centroid(f):
+    ys, xs = np.nonzero(f > 0.02)
+    return xs.mean(), ys.mean()
+
+
+@pytest.mark.parametrize("motion", ["sway", "tilt", "rock"])
+def test_turning_motions_stay_in_place(tmp_path, motion):
+    proc, out = run_job(tmp_path, {"shape": "heart"}, motion=motion, duration=2, motion_seconds=2)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    fr, _ = frames(out)
+    xs, ys = zip(*(_centroid(f) for f in fr))
+    assert max(xs) - min(xs) < 0.06 * W and max(ys) - min(ys) < 0.06 * H
+    assert not np.allclose(fr[0], fr[5], atol=0.02)  # it does move (depth changes)
+
+
+def test_motion_amount_controls_strength(tmp_path):
+    changes = []
+    for amount in (8, 40):
+        d = tmp_path / str(amount)
+        d.mkdir()
+        proc, out = run_job(d, {"shape": "heart"}, motion="sway", duration=2, motion_seconds=2,
+                            motion_amount=amount)
+        assert proc.returncode == 0, proc.stderr[-2000:]
+        fr, _ = frames(out)
+        changes.append(np.abs(fr[0] - fr[5]).mean())
+    assert changes[1] > 2 * changes[0]
+
+
+def test_default_float_is_subtle(tmp_path):
+    proc, out = run_job(tmp_path, {"shape": "heart"}, motion="float", duration=2)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    fr, _ = frames(out)
+    ys = [_centroid(f)[1] for f in fr]
+    assert max(ys) - min(ys) < 0.04 * H

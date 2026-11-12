@@ -140,7 +140,22 @@ def run_probe(job):
 
 # ---------------------------------------------------------------- full job mode
 
-MOTIONS = ("spin", "float", "bob", "zoom_in", "fly_toward", "swim_past", "ripple", "pulse")
+# Gentle defaults per motion: (amount, seconds per cycle). amount is degrees
+# for turning motions and % of the object's size for moving ones.
+MOTION_DEFAULTS = {
+    "sway": (20.0, 8.0),       # turn to one side and back, then to the other side
+    "tilt": (12.0, 8.0),       # nod forward and back
+    "rock": (10.0, 8.0),       # tip left and right
+    "spin": (360.0, 12.0),     # degrees per cycle
+    "float": (3.0, 6.0),       # up/down by amount % with a slight sway
+    "bob": (5.0, 2.5),
+    "zoom_in": (70.0, None),   # start at amount % size
+    "fly_toward": (75.0, None),  # start amount % of a size further away
+    "swim_past": (30.0, None),   # object width as % of the safe width
+    "ripple": (3.0, 2.0),
+    "pulse": (5.0, 1.0),
+}
+MOTIONS = tuple(MOTION_DEFAULTS)
 DRAWABLE = {"MESH", "CURVE", "FONT", "SURFACE", "META"}
 
 
@@ -313,6 +328,9 @@ class Rig:
         self.speed = job["speed"]
         self.duration = job["duration"]
         self.motion = job.get("motion")
+        default_amount, default_seconds = MOTION_DEFAULTS.get(self.motion, (None, None))
+        self.amount = job.get("motion_amount") or default_amount
+        self.seconds = job.get("motion_seconds") or default_seconds or self.duration
         self.frames = max(1, round(self.duration * self.fps))
         self.travel = 0.0
         self.motion_obj = bpy.data.objects.new("MOTION", None)
@@ -348,9 +366,9 @@ class Rig:
             for o in self.objects:
                 if o.type in ("MESH", "CURVE", "FONT"):
                     wave = o.modifiers.new("Ripple", "WAVE")
-                    wave.height = 0.05 / s
+                    wave.height = 2.0 * self.amount / 100.0 / s
                     wave.width = 0.5 / s
-                    wave.speed = 0.02 / s
+                    wave.speed = 0.5 / s / (self.seconds * self.fps)
                     self.waves.append(wave)
 
     def apply(self, i, with_motion=True):
@@ -372,30 +390,41 @@ class Rig:
         bpy.context.view_layer.update()
 
     def _motion(self, m, t):
+        """Motion presets. Turning motions keep the object in place, which
+        hides its outline much better than moving it around."""
         sp, two_pi = self.speed, 2 * math.pi
+        a, period = self.amount, self.seconds
+        wave = math.sin(two_pi * t * sp / period)
         p = min(t * sp / self.duration, 1.0)
-        if self.motion == "spin":
-            m.rotation_euler[2] = two_pi * t * sp / 6.0
+        size = 2.0  # the object is normalised to a 2-unit diagonal
+        if self.motion == "sway":
+            m.rotation_euler[2] = math.radians(a) * wave
+        elif self.motion == "tilt":
+            m.rotation_euler[0] = math.radians(a) * wave
+        elif self.motion == "rock":
+            m.rotation_euler[1] = math.radians(a) * wave
+        elif self.motion == "spin":
+            m.rotation_euler[2] = math.radians(a) * t * sp / period
         elif self.motion == "float":
-            m.location[2] = 0.08 * math.sin(two_pi * t * sp / 4.0)
-            m.rotation_euler[2] = math.radians(15) * math.sin(two_pi * t * sp / 7.0)
+            m.location[2] = size * a / 100.0 * wave
+            m.rotation_euler[2] = math.radians(6) * math.sin(two_pi * t * sp / (period * 1.7))
         elif self.motion == "bob":
-            m.location[2] = 0.15 * math.sin(two_pi * t * sp / 1.2)
+            m.location[2] = size * a / 100.0 * wave
         elif self.motion == "zoom_in":
-            k = 0.6 + 0.4 * ease(p)
+            k = a / 100.0 + (1 - a / 100.0) * ease(p)
             m.scale = (k, k, k)
         elif self.motion == "fly_toward":
-            m.location[1] = 3.0 * (1.0 - ease(p))
-            k = 0.5 + 0.5 * ease(p)
+            m.location[1] = size * a / 100.0 * (1.0 - ease(p))
+            k = 0.8 + 0.2 * ease(p)
             m.scale = (k, k, k)
         elif self.motion == "swim_past":
             q = (t * sp / self.duration) % 1.0 if sp > 1 else p
             m.location[0] = -self.travel + 2 * self.travel * q
-            m.location[2] = 0.05 * math.sin(two_pi * t * sp / 2.0)
+            m.location[2] = 0.03 * math.sin(two_pi * t * sp / 2.0)
         elif self.motion == "pulse":
-            u = (t * sp) % 1.0
+            u = (t * sp / period) % 1.0
             beat = u / 0.1 if u < 0.1 else math.exp(-(u - 0.1) * 6.0)
-            k = 1.0 + 0.08 * beat
+            k = 1.0 + a / 100.0 * beat
             m.scale = (k, k, k)
 
     def sample_boxes(self, with_motion=True):
@@ -419,7 +448,7 @@ def frame_camera(scene, rig, job):
         bh = max(b[1][2] - b[0][2] for b in boxes)
         cx = sum((b[0][0] + b[1][0]) / 2 for b in boxes) / len(boxes)
         cz = sum((b[0][2] + b[1][2]) / 2 for b in boxes) / len(boxes)
-        world_w = max(bw / (0.3 * sw), bh / (sh * margin) * w / h)
+        world_w = max(bw / (rig.amount / 100.0 * sw), bh / (sh * margin) * w / h)
         rig.travel = (sw * world_w - bw) / 2
         boxes = rig.sample_boxes(with_motion=True)
     else:
@@ -469,7 +498,8 @@ def pick_reveal_frame(rig):
     m = rig.motion_obj
     for i in range(0, rig.frames, step):
         rig.apply(i)
-        score = math.cos(m.rotation_euler[2]) * m.scale[0]
+        r = m.rotation_euler
+        score = math.cos(r[0]) * math.cos(r[1]) * math.cos(r[2]) * m.scale[0]
         if rig.travel:
             score -= 0.5 * abs(m.location[0]) / rig.travel
         scores[i] = score

@@ -43,6 +43,32 @@ def test_minimal_scene_defaults(tmp_project):
     assert s.platform == "tiktok" and s.text.bottom_y is None
 
 
+def test_new_motions_and_settings(tmp_project):
+    for motion in ("sway", "tilt", "rock"):
+        s = load_scene(write(tmp_project, f"{motion}.yaml", {"id": motion, "shape": "heart", "motion": motion,
+                                                              "motion_settings": {"amount": 15, "seconds": 6}}),
+                       tmp_project)
+        assert s.motion_settings.amount == 15 and s.motion_settings.seconds == 6
+    p = write(tmp_project, "bad.yaml", {"id": "bad", "shape": "heart", "motion_settings": {"seconds": 0}})
+    with pytest.raises(SceneError, match="seconds"):
+        load_scene(p, tmp_project)
+
+
+def test_edge_softness_default_and_bounds(tmp_project):
+    s = load_scene(write(tmp_project, "e.yaml", {"id": "e", "shape": "heart"}), tmp_project)
+    assert s.advanced.edge_softness == 1.0
+    p = write(tmp_project, "f.yaml", {"id": "f", "shape": "heart", "advanced": {"edge_softness": 9}})
+    with pytest.raises(SceneError, match="edge_softness"):
+        load_scene(p, tmp_project)
+
+
+def test_depth_hash_changes_with_motion_settings(tmp_project):
+    a = load_scene(write(tmp_project, "a.yaml", {"id": "a", "shape": "heart", "motion": "sway"}), tmp_project)
+    b = load_scene(write(tmp_project, "a.yaml", {"id": "a", "shape": "heart", "motion": "sway",
+                                                  "motion_settings": {"amount": 30}}), tmp_project)
+    assert depth_hash(a, SHORT) != depth_hash(b, SHORT)
+
+
 def test_platform_and_bottom_y_validation(tmp_project):
     p = write(tmp_project, "p.yaml", {"id": "p", "shape": "heart", "platform": "myspace"})
     with pytest.raises(SceneError, match="tiktok"):
