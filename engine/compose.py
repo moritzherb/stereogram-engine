@@ -127,7 +127,8 @@ def fit_reveal(img: np.ndarray, fmt: Format, bottom_strip: float = 0.0) -> np.nd
     area_h = round(fmt.height * (1.0 - bottom_strip))
     scale = min(fmt.width / src.width, area_h / src.height)
     size = (max(1, round(src.width * scale)), max(1, round(src.height * scale)))
-    canvas = Image.new("RGB", (fmt.width, fmt.height), REVEAL_BG)
+    background = tuple(int(c) for c in img[0, 0])  # the reveal's own background: no visible seams
+    canvas = Image.new("RGB", (fmt.width, fmt.height), background)
     canvas.paste(src.resize(size, Image.LANCZOS), ((fmt.width - size[0]) // 2, (area_h - size[1]) // 2))
     return np.asarray(canvas)
 

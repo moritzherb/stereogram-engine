@@ -17,6 +17,7 @@ from engine.depth.base import DepthSource
 from engine.depth.soften import soften, softness_sigma
 from engine.encode import VideoWriter, copy_silent, mux_music, pick_music
 from engine.formats import LONG, SHORT, Format, preview_of
+from engine.longform import LongFromShort
 from engine.patterns import generate_pattern, load_image_pattern
 from engine.project import Project
 from engine.scene import GeneratedPattern, Scene, SceneError, load_scene, render_hash, reveal_enabled
@@ -101,7 +102,9 @@ class _FrameRenderer:
         n = len(self.seq)
         step = max(1, n // 10)
         for i in range(n):
-            depth = prepare_depth(self.seq.frame(i), self.scene, self.fmt)
+            depth = self.seq.frame(i)
+            if not getattr(self.seq, "prepared", False):
+                depth = prepare_depth(depth, self.scene, self.fmt)
             img = render_stereogram(depth, self.strip, repeat_px=self.repeat,
                                     depth_strength=self.scene.advanced.depth_strength,
                                     crosseyed=self.scene.advanced.viewing == "crosseyed",
@@ -236,9 +239,15 @@ def render_scene(scene: Scene, project: Project, depth_source: DepthSource, *, p
     track: Path | None = None
     middle_long: np.ndarray | None = None
     middle_short: np.ndarray | None = None
+    short_seq = None
     for fmt_name, fmt in formats:
         strip = strips[fmt_name]
-        seq = depth_source.render(scene, fmt)
+        if short_seq is None:
+            short_seq = depth_source.render(scene, SHORT)  # one depth render serves both formats
+        if fmt_name == "short":
+            seq = short_seq
+        else:
+            seq = LongFromShort(short_seq, LONG, transform=lambda d: prepare_depth(d, scene, SHORT))
         warn(check_safe_area(seq, fmt) + check_motion(seq))
         if fmt_name == "short":
             outputs, fr, track = _render_short(scene, project, fmt, seq, strip, out_dir, name="short",

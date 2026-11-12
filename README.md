@@ -82,7 +82,7 @@ speed: 1.0                      # lower = slower
 duration: 30                    # seconds (1 to 180)
 pattern: patterns/ocean.jpg     # your image, or a generated pattern:
 #   pattern: { generate: swirl, palette: ocean, seed: 7 }
-formats: [short, long]          # short = 1080x1920, long = 1920x1080 segment
+formats: [short, long]          # short = 1080x1920; long = 1920x1080 made from the same Short (more background)
 text:
   top: "This is a stereogram"   # shown for the first 4 seconds
   bottom: "What do you see?"
@@ -154,6 +154,10 @@ segment_seconds: 35                                 # stereogram time before eac
 ```
 
 Render the scenes first (`stereo render scenes/`), then `stereo compile compilations/ocean-animals.yaml`.
+
+Long videos use exactly the same hidden model, animation and pattern size as the Shorts: the 16:9
+frame just shows more background at the sides, and the model may be up to 20 % bigger. It is never
+stretched.
 
 ## Models, patterns and music
 

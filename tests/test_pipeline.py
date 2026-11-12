@@ -31,6 +31,18 @@ def test_render_short_and_long(tmp_project):
     assert not list(out.glob("*.part*")) and not list(out.glob("*.video.mp4"))
 
 
+def test_long_segment_reuses_the_short_depth(tmp_project):
+    src = FakeDepthSource()
+    render_scene(_scene(tmp_project), tmp_project, src, log=lambda m: None)
+    assert src.calls == 1  # one Blender render serves both formats
+
+
+def test_long_only_scene_still_renders(tmp_project):
+    r = render_scene(_scene(tmp_project, formats=["long"]), tmp_project, FakeDepthSource(), log=lambda m: None)
+    names = {p.name for p in r.outputs}
+    assert "long_segment.mp4" in names and "short.mp4" not in names and "reveal_long.png" in names
+
+
 def test_only_requested_formats(tmp_project):
     r = render_scene(_scene(tmp_project, formats=["short"]), tmp_project, FakeDepthSource(), log=lambda m: None)
     names = {p.name for p in r.outputs}

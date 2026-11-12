@@ -35,7 +35,8 @@ class Format:
 # The hidden object is centred. Shorts: equal margins keep it clear of the apps'
 # side buttons (right) and of both text lines (top 12 %, bottom 80 %).
 SHORT = Format("short", 1080, 1920, 154, SafeArea(0.20, 0.20, 0.15, 0.15))
-LONG = Format("long", 1920, 1080, 175, SafeArea(0.08, 0.08, 0.10, 0.10))
+# Long videos reuse the Short's depth and pattern size: only the background grows.
+LONG = Format("long", 1920, 1080, 154, SafeArea(0.08, 0.08, 0.10, 0.10))
 _FORMATS = {"short": SHORT, "long": LONG}
 
 

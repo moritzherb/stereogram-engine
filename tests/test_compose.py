@@ -172,8 +172,8 @@ def test_segment_reveal_after_stereo():
 
 
 def test_reveal_title_sits_below_the_model():
-    red = np.zeros((1080, 1920, 3), np.uint8)
-    red[..., 0] = 250
+    red = np.full((1080, 1920, 3), 194, np.uint8)  # grey background like a Blender reveal
+    red[:, 200:1720] = (250, 0, 0)  # the "model" reaches the top and bottom of the image
     seg = SegmentComposer(LONG, FONT, index=1, total=2, title="Hidden heart", stereo_seconds=2.0, reveal_img=red)
     out = seg.frame(np.zeros_like(red), 3.0)
     strip_top = round(0.86 * 1080)
@@ -189,11 +189,14 @@ def test_segment_fades_to_black():
     assert out.mean() < 5
 
 
-def test_fit_reveal_letterboxes():
-    out = fit_reveal(np.full((100, 100, 3), 255, np.uint8), LONG)
-    assert out.shape == (1080, 1920, 3) and out[540, 960].min() == 255 and out[540, 10].max() < 255
-    strip = fit_reveal(np.full((100, 100, 3), 255, np.uint8), LONG, bottom_strip=0.14)
-    assert strip[1070, 960].max() < 255 and strip[400, 960].min() == 255
+def test_fit_reveal_letterboxes_in_the_reveals_own_background():
+    img = np.full((100, 100, 3), 201, np.uint8)
+    img[30:70, 30:70] = 255
+    out = fit_reveal(img, LONG)
+    assert out.shape == (1080, 1920, 3) and out[540, 960].min() == 255
+    assert tuple(out[540, 10]) == (201, 201, 201)  # side bars match the image's background
+    strip = fit_reveal(img, LONG, bottom_strip=0.14)
+    assert tuple(strip[1070, 960]) == (201, 201, 201) and strip[400, 960].min() == 255
 
 
 def test_card():

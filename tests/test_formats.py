@@ -5,7 +5,7 @@ from engine.formats import LONG, SHORT, get_format, preview_of
 
 def test_short_and_long_constants():
     assert (SHORT.width, SHORT.height, SHORT.repeat_px) == (1080, 1920, 154)
-    assert (LONG.width, LONG.height, LONG.repeat_px) == (1920, 1080, 175)
+    assert (LONG.width, LONG.height, LONG.repeat_px) == (1920, 1080, 154)  # same pattern size as Shorts
 
 
 def test_safe_areas_are_centred():
