@@ -7,5 +7,5 @@ motion: breathe
 duration: 20
 pattern:
   generate: swirl
-  palette: ocean
+  palette: default   # busy and multicoloured: hides the letter edges best
 title: "Hidden word"

@@ -37,6 +37,7 @@ def test_minimal_scene_defaults(tmp_project):
     assert s.text.bottom == "What do you see?"
     assert s.text.end == "Comment what you see"
     assert isinstance(s.pattern, GeneratedPattern) and s.pattern.seed is not None
+    assert s.pattern.generate == "swirl"  # busy patterns hide pattern seams best
     assert s.title == "Heart"
     assert s.music == "auto" and s.reveal == "auto"
     assert s.advanced.depth_strength == 0.33 and s.advanced.viewing == "parallel"

@@ -236,3 +236,28 @@ def test_tilted_text_bottom_does_not_sink(tmp_path):
     for f in frames(out)[0]:
         top, bottom = _thirds(f, 0)
         assert abs(top - bottom) < 0.25  # a 10 degree nod is no longer exaggerated into a deep slope
+
+
+def _inner(mask, steps):
+    inner = mask.copy()
+    for _ in range(steps):
+        inner[1:-1, 1:-1] &= inner[:-2, 1:-1] & inner[2:, 1:-1] & inner[1:-1, :-2] & inner[1:-1, 2:]
+    return inner[1:-1, 1:-1]
+
+
+def _laplacian(a):
+    a = a.astype(np.float32)
+    return np.abs(a[1:-1, 1:-1] * 4 - a[:-2, 1:-1] - a[2:, 1:-1] - a[1:-1, :-2] - a[1:-1, 2:])
+
+
+def test_heart_surface_is_smooth(tmp_path):
+    proc, out = run_job(tmp_path, {"shape": "heart"}, width=432, height=768, duration=0.04, reveal=True)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    fr, seq = frames(out)
+    f = fr[0]
+    lum = seq.reveal.astype(np.float32).mean(axis=2)
+    inner = _inner(f > 0.3, 8)
+    crease = np.percentile(np.abs(lum[1:-1, 2:] - lum[1:-1, :-2])[inner], 99.5)
+    assert crease < 10, f"sharp creases/streaks in the shading ({crease:.1f})"  # was 14.0
+    grain = np.median(_laplacian(lum)[inner])
+    assert grain <= 1.0, f"grainy answer image ({grain:.2f})"  # was 2.0

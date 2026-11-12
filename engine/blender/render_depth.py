@@ -204,6 +204,9 @@ def _pillow_object(name, segments, radius, step):
         dist = np.minimum(dist, np.hypot(X - ax - t * dx, Y - ay - t * dy))
     u = np.clip(dist / radius, 0.0, 1.0)
     Z = np.where(inside, radius * np.sqrt(1.0 - (1.0 - u) ** 2), 0.0)
+    # The distance-based dome has a sharp crease along its middle; smooth it
+    # out so the surface (and the answer image) looks soft and even.
+    Z = np.where(inside, _box_smooth(Z, max(1, round(0.12 * radius / step))), 0.0)
     cell = inside[:-1, :-1] | inside[1:, :-1] | inside[1:, 1:] | inside[:-1, 1:]
     ci, cj = np.nonzero(cell)
     idx = np.arange(nx * ny).reshape(nx, ny)
@@ -220,6 +223,21 @@ def _pillow_object(name, segments, radius, step):
     bpy.context.scene.collection.objects.link(obj)
     obj.rotation_euler = (math.pi / 2, 0.0, 0.0)  # face the camera (-Y)
     return obj
+
+
+def _box_smooth(a, r, passes=3):
+    """Approximate Gaussian blur of a 2D array (box blur, edges extended)."""
+    out = a.astype(np.float64)
+    for axis in (0, 1):
+        for _ in range(passes):
+            pad = [(0, 0), (0, 0)]
+            pad[axis] = (r + 1, r)
+            c = np.cumsum(np.pad(out, pad, mode="edge"), axis=axis)
+            n = out.shape[axis]
+            hi = np.take(c, np.arange(2 * r + 1, 2 * r + 1 + n), axis=axis)
+            lo = np.take(c, np.arange(0, n), axis=axis)
+            out = (hi - lo) / (2 * r + 1)
+    return out
 
 
 def _shape_pillow(name, points, roundness):
@@ -569,8 +587,9 @@ def render_reveal(scene, rig, out_dir, needs_clay, frame):
     scene.render.use_compositing = False
     scene.render.film_transparent = False
     scene.view_settings.view_transform = "Standard"
-    scene.cycles.samples = 16
+    scene.cycles.samples = 64
     scene.cycles.max_bounces = 4
+    scene.cycles.use_denoising = True  # smooth, grain-free answer image
     scene.world.use_nodes = False
     scene.world.color = (0.55, 0.56, 0.58)
     sun = bpy.data.objects.new("Sun", bpy.data.lights.new("Sun", "SUN"))

@@ -194,7 +194,7 @@ class Scene(_Strict):
         if len(sources) != 1:
             raise ValueError("use exactly one of model, text3d or shape")
         if self.pattern is None:
-            self.pattern = GeneratedPattern(generate="noise")
+            self.pattern = GeneratedPattern(generate="swirl")  # busy patterns hide pattern seams best
         if isinstance(self.pattern, GeneratedPattern) and self.pattern.seed is None:
             self.pattern.seed = int(hashlib.sha256(self.id.encode()).hexdigest()[:8], 16)
         if self.title is None:
