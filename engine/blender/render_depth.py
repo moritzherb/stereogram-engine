@@ -147,6 +147,7 @@ MOTION_DEFAULTS = {
     "sway": (20.0, 8.0),       # turn to one side and back, then to the other side
     "tilt": (12.0, 8.0),       # nod forward and back
     "rock": (10.0, 8.0),       # tip left and right
+    "breathe": (3.0, 6.0),     # move towards and away from the viewer by amount % of size
     "spin": (360.0, 12.0),     # degrees per cycle
     "float": (3.0, 6.0),       # up/down by amount % with a slight sway
     "bob": (5.0, 2.5),
@@ -443,6 +444,10 @@ class Rig:
             m.rotation_euler[0] = math.radians(a) * wave
         elif self.motion == "rock":
             m.rotation_euler[1] = math.radians(a) * wave
+        elif self.motion == "breathe":
+            # Straight towards/away from the (orthographic) camera: the outline
+            # never moves and every part keeps the same height. Best for words.
+            m.location[1] = -size * a / 100.0 * wave
         elif self.motion == "spin":
             m.rotation_euler[2] = math.radians(a) * t * sp / period
         elif self.motion == "float":
@@ -507,10 +512,11 @@ def frame_camera(scene, rig, job):
     cam_z = cz + (cy_frac - 0.5) * world_h
     cam_y = lo[1] - 10.0
     add_ortho_camera(scene, (cam_x, cam_y, cam_z), ortho)
-    # The depth range follows the object's real thickness, so thin objects
-    # such as words still get a rounded 3D surface (a small floor keeps
-    # perfectly flat objects from dividing by zero).
-    setup_mist(scene, start=lo[1] - cam_y, depth=max(bd, 0.05 * max(bw, bh)))
+    # The depth range follows the object's real thickness, so thick objects
+    # get a fully rounded 3D surface. Thin objects (words) get a minimum range
+    # of 15 % of their size, so a small motion is not exaggerated into a deep
+    # slope across the letters.
+    setup_mist(scene, start=lo[1] - cam_y, depth=max(bd, 0.15 * max(bw, bh)))
 
 
 def render_job_frames(scene, rig, out_dir):

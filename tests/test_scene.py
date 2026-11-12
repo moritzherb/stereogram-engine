@@ -44,7 +44,7 @@ def test_minimal_scene_defaults(tmp_project):
 
 
 def test_new_motions_and_settings(tmp_project):
-    for motion in ("sway", "tilt", "rock"):
+    for motion in ("sway", "tilt", "rock", "breathe"):
         s = load_scene(write(tmp_project, f"{motion}.yaml", {"id": motion, "shape": "heart", "motion": motion,
                                                               "motion_settings": {"amount": 15, "seconds": 6}}),
                        tmp_project)

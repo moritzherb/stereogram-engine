@@ -14,7 +14,7 @@ from engine.formats import Format
 from engine.patterns import PALETTES, STYLES
 from engine.project import Project
 
-MOTIONS = ("sway", "tilt", "rock", "spin", "float", "bob", "zoom_in", "fly_toward", "swim_past", "ripple", "pulse")
+MOTIONS = ("sway", "tilt", "rock", "breathe", "spin", "float", "bob", "zoom_in", "fly_toward", "swim_past", "ripple", "pulse")
 SHAPES = ("sphere", "cube", "torus", "cone", "heart", "star")
 PLATFORMS = ("tiktok", "reels", "shorts", "facebook", "clean")
 MODEL_EXTS = (".glb", ".gltf", ".fbx")

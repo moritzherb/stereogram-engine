@@ -115,6 +115,7 @@ palettes `default`, `ocean`, `sunset`, `forest`, `candy`, `mono`.
 | `sway` | Turns to one side and back, then to the other side and back | degrees (20) | one full cycle (8) |
 | `tilt` | Nods forward and back | degrees (12) | 8 |
 | `rock` | Tips left and right | degrees (10) | 8 |
+| `breathe` | Moves gently towards and away from the viewer (best for words) | % of size (3) | 6 |
 | `spin` | Turns all the way around | degrees per cycle (360) | 12 |
 | `float` | Drifts gently up and down | % of size (3) | 6 |
 | `bob` | Quicker up-and-down bounce | % of size (5) | 2.5 |
@@ -133,7 +134,8 @@ the object much better than patterns with straight, high-contrast lines (`cells`
 
 Tips: big, bold shapes read best; fine details (fingers, thin legs) disappear.
 Hidden 3D text uses solid block letters in a heavy font; short words (up to about 8 letters) work
-best. For words, use `tilt` (or `rock`): `sway` turns a long word so that one end goes far back.
+best. For words, use `breathe`: the outline stays still and every letter keeps the same height.
+Turning motions (`sway`, `tilt`) make parts of a flat word sink back.
 
 **Text position per platform:** the bottom line sits at 80 % of the height for `tiktok`, `reels`,
 `shorts` and `facebook` (just above the apps' caption area), and at 88 % for `clean` (posted without

@@ -201,3 +201,38 @@ def test_short_safe_area_centres_the_object(tmp_path):
     x0, y0, x1, y1 = bbox(frames(out)[0][0])
     assert (x0 + x1) / 2 / W == pytest.approx(0.5, abs=0.02)
     assert (y0 + y1) / 2 / H == pytest.approx(0.5, abs=0.02)
+
+
+def _thirds(f, axis):
+    obj = f > 0.02
+    idx = np.nonzero(obj.any(axis=1 - axis))[0]
+    third = (idx.max() - idx.min()) // 3
+    a = [slice(None), slice(None)]
+    b = [slice(None), slice(None)]
+    a[axis] = slice(idx.min(), idx.min() + third)
+    b[axis] = slice(idx.max() - third, idx.max())
+    return f[tuple(a)][obj[tuple(a)]].mean(), f[tuple(b)][obj[tuple(b)]].mean()
+
+
+def test_breathing_text_stays_even_and_hidden(tmp_path):
+    proc, out = run_job(tmp_path, {"text3d": "HELLO"}, motion="breathe", duration=2, motion_seconds=2,
+                        width=216, height=384)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    fr, _ = frames(out)
+    masks = [f > 0.02 for f in fr]
+    for f, m in zip(fr, masks):
+        top, bottom = _thirds(f, 0)
+        left, right = _thirds(f, 1)
+        assert abs(top - bottom) < 0.05 and abs(left - right) < 0.05  # every letter at one height
+        assert (m ^ masks[0]).mean() < 0.002  # the outline does not move (stays hidden)
+    means = [f[m].mean() for f, m in zip(fr, masks)]
+    assert max(means) - min(means) > 0.1  # but the word does move towards and away from the viewer
+
+
+def test_tilted_text_bottom_does_not_sink(tmp_path):
+    proc, out = run_job(tmp_path, {"text3d": "HELLO"}, motion="tilt", duration=2, motion_seconds=2,
+                        motion_amount=10, width=216, height=384)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    for f in frames(out)[0]:
+        top, bottom = _thirds(f, 0)
+        assert abs(top - bottom) < 0.25  # a 10 degree nod is no longer exaggerated into a deep slope
