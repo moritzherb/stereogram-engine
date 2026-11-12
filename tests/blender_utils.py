@@ -16,7 +16,7 @@ def run_job(tmp_path, source, **kw):
     out = tmp_path / "out dir"
     job = {"source": source, "animation": None, "motion": None, "speed": 1.0, "duration": 1, "fps": 10,
            "width": 108, "height": 192, "safe": SAFE, "reveal": False, "out_dir": str(out),
-           "font": str(Path(__file__).resolve().parents[1] / "assets" / "fonts" / "Montserrat-ExtraBold.ttf")}
+           "font": str(Path(__file__).resolve().parents[1] / "assets" / "fonts" / "Montserrat-Black.ttf")}
     job.update(kw)
     jf = tmp_path / "job.json"
     jf.write_text(json.dumps(job))

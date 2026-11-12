@@ -132,7 +132,8 @@ more clearly once seen, lower blends it into the background. Smooth, organic pat
 the object much better than patterns with straight, high-contrast lines (`cells`, `stripes`).
 
 Tips: big, bold shapes read best; fine details (fingers, thin legs) disappear.
-Hidden 3D text uses solid, rounded letters; short words (up to about 8 letters) work best.
+Hidden 3D text uses solid block letters in a heavy font; short words (up to about 8 letters) work
+best. For words, use `tilt` (or `rock`): `sway` turns a long word so that one end goes far back.
 
 **Text position per platform:** the bottom line sits at 80 % of the height for `tiktok`, `reels`,
 `shorts` and `facebook` (just above the apps' caption area), and at 88 % for `clean` (posted without

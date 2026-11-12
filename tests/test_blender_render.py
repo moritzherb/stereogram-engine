@@ -156,15 +156,39 @@ def _roundness(f):
     return slope, fill
 
 
-@pytest.mark.parametrize("src,min_slope", [({"text3d": "HELLO"}, 0.3), ({"shape": "heart"}, 0.35),
-                                           ({"shape": "star"}, 0.3)])
+@pytest.mark.parametrize("src,min_slope", [({"shape": "heart"}, 0.35), ({"shape": "star"}, 0.3)])
 def test_solid_rounded_3d(tmp_path, src, min_slope):
     proc, out = run_job(tmp_path, src, width=432, height=768, duration=0.1)
     assert proc.returncode == 0, proc.stderr[-2000:]
     slope, fill = _roundness(frames(out)[0][0])
     assert slope >= min_slope, f"only {slope:.0%} of the surface is rounded"
-    if "text3d" in src:
-        assert fill >= 0.52, f"letters too thin ({fill:.0%} fill)"  # thin default font: 0.47
+
+
+def test_text_letters_are_solid_blocks(tmp_path):
+    proc, out = run_job(tmp_path, {"text3d": "HELLO"}, width=432, height=768, duration=0.1)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    f = frames(out)[0][0]
+    obj = f > 0.02
+    plateau = (f >= 0.9 * f.max())[obj].mean()
+    assert plateau >= 0.6, f"only {plateau:.0%} of the letters is at full height"  # flat, solid tops
+    slope, fill = _roundness(f)
+    assert slope >= 0.05  # but the edges are rounded, not cut-outs
+    assert fill >= 0.56, f"letters too thin ({fill:.0%} fill)"  # ExtraBold tubes: 0.55
+
+
+def test_tilting_text_stays_even(tmp_path):
+    proc, out = run_job(tmp_path, {"text3d": "HELLO"}, motion="tilt", duration=2, motion_seconds=2,
+                        motion_amount=10)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    fr, _ = frames(out)
+    for f in fr:
+        obj = f > 0.02
+        ys, xs = np.nonzero(obj)
+        third = (xs.max() - xs.min()) // 3
+        left = f[:, xs.min():xs.min() + third][obj[:, xs.min():xs.min() + third]].mean()
+        right = f[:, xs.max() - third:xs.max()][obj[:, xs.max() - third:xs.max()]].mean()
+        assert abs(left - right) < 0.05  # the whole word stays at one height
+        assert f.max() > 0.7  # present at every moment (tilt moves the letter tops back a little)
 
 
 def test_short_safe_area_centres_the_object(tmp_path):

@@ -1,10 +1,12 @@
-# The word HELLO in solid rounded letters, gently turning side to side.
+# The word HELLO in solid block letters, gently nodding forward and back.
+# (For words, tilt keeps every letter at the same height; sway turns long
+#  words so one end goes far back.)
 id: example-text
 text3d: "HELLO"
-motion: sway
+motion: tilt
 motion_settings:
-  amount: 15      # degrees
-  seconds: 8      # one full left-right-left cycle
+  amount: 10      # degrees
+  seconds: 8      # one full forward-back cycle
 duration: 20
 pattern:
   generate: swirl

@@ -207,3 +207,17 @@ def test_pattern_drift_changes_frames(tmp_project):
     frames = [img for i, img in fr.frames(lambda m: None, "x") if i in (0, 30)]
     # one second of drift = 30 px: the far-away background has moved by 30 px
     assert np.array_equal(frames[1][:100, 30:], frames[0][:100, :-30])
+
+
+def test_lift_keeps_antialiased_edges_smooth(tmp_project):
+    import numpy as np
+
+    from engine.formats import SHORT
+    from engine.pipeline import prepare_depth
+
+    edge = np.zeros((1920, 1080), np.float32)
+    edge[:, 500:540] = np.linspace(0.0, 0.6, 40)  # a soft, anti-aliased edge rising into the object
+    edge[:, 540:] = 0.6
+    out = prepare_depth(edge, _scene(tmp_project, advanced={"edge_softness": 0}), SHORT)
+    assert np.abs(np.diff(out[100], axis=0)).max() < 0.06  # no sudden jump from tiny edge values
+    assert out[100, 700] == pytest.approx(0.35 + 0.65 * 0.6, abs=1e-5)  # full lift inside the object

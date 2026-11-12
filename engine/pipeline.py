@@ -73,7 +73,7 @@ def _music_for(scene: Scene, project: Project) -> Path | None:
     return pick_music(project.music, scene.id)
 
 
-OBJECT_EPS = 0.002  # depth above this is part of the object (background is exactly 0)
+COVERAGE_DEPTH = 0.3  # edge pixels below this depth are only partly covered by the object
 
 
 def prepare_depth(depth: np.ndarray, scene: Scene, fmt: Format) -> np.ndarray:
@@ -81,7 +81,11 @@ def prepare_depth(depth: np.ndarray, scene: Scene, fmt: Format) -> np.ndarray:
     background (so it clearly stands in front of it), then gently softened."""
     lift = scene.advanced.lift
     if lift > 0:
-        depth = np.where(depth > OBJECT_EPS, lift + (1.0 - lift) * depth, 0.0).astype(np.float32)
+        # Anti-aliased edge pixels get only part of the lift (in proportion to how
+        # much of them the object covers); lifting them fully turns soft, slightly
+        # noisy outlines into ragged steps that flicker in the stereogram.
+        coverage = np.clip(depth / COVERAGE_DEPTH, 0.0, 1.0)
+        depth = (coverage * lift + (1.0 - lift) * depth).astype(np.float32)
     return soften(depth, softness_sigma(scene.advanced.edge_softness, fmt))
 
 

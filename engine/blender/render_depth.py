@@ -264,7 +264,8 @@ def build_shape(name):
 
 
 def build_text(text, font_path=None):
-    """Solid balloon letters: each stroke is fully rounded, holes stay open."""
+    """Solid block letters: flat tops at full height with a narrow rounded
+    edge (so they read as solid and present), holes stay open."""
     curve = bpy.data.curves.new("TextOutline", type="FONT")
     curve.body = text
     if font_path and os.path.exists(font_path):
@@ -286,7 +287,7 @@ def build_text(text, font_path=None):
     bpy.data.meshes.remove(mesh)
     if not segments:
         fail(4, "IMPORT_FAILED: the text has no visible letters")
-    return [_pillow_object("Text", segments, radius=0.09, step=0.005)]
+    return [_pillow_object("Text", segments, radius=0.035, step=0.005)]
 
 
 def import_model(path):
