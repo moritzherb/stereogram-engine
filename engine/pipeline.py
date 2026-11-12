@@ -72,8 +72,15 @@ def _music_for(scene: Scene, project: Project) -> Path | None:
     return pick_music(project.music, scene.id)
 
 
+OBJECT_EPS = 0.002  # depth above this is part of the object (background is exactly 0)
+
+
 def prepare_depth(depth: np.ndarray, scene: Scene, fmt: Format) -> np.ndarray:
-    """Depth as it goes into the stereogram: with soft edges."""
+    """Depth as it goes into the stereogram: the object lifted off the
+    background (so it clearly stands in front of it), then gently softened."""
+    lift = scene.advanced.lift
+    if lift > 0:
+        depth = np.where(depth > OBJECT_EPS, lift + (1.0 - lift) * depth, 0.0).astype(np.float32)
     return soften(depth, softness_sigma(scene.advanced.edge_softness, fmt))
 
 

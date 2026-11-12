@@ -139,6 +139,36 @@ def test_project_path_with_spaces(tmp_path):
     assert "short.mp4" in meta["outputs"]
 
 
+def test_object_is_lifted_off_the_background(tmp_project):
+    import numpy as np
+
+    from engine.formats import SHORT
+    from engine.pipeline import prepare_depth
+
+    yy, xx = np.mgrid[0:1920, 0:1080]
+    r2 = ((xx - 540) ** 2 + (yy - 960) ** 2) / 300.0**2
+    dome = np.sqrt(np.clip(1 - r2, 0, 1)).astype(np.float32)  # rises from 0 at its edge
+    out = prepare_depth(dome, _scene(tmp_project), SHORT)
+    inner = r2 < 0.9  # away from the softened outline
+    assert out[inner].min() >= 0.34  # the whole object stands in front of the background
+    assert out[960, 540] == pytest.approx(1.0, abs=0.01)  # its top stays at full height
+    assert out[100, 100] == 0  # background untouched
+    flat = prepare_depth(dome, _scene(tmp_project, advanced={"lift": 0, "edge_softness": 0}), SHORT)
+    assert np.array_equal(flat, dome)
+
+
+def test_thin_strokes_keep_their_height(tmp_project):
+    import numpy as np
+
+    from engine.formats import SHORT
+    from engine.pipeline import prepare_depth
+
+    stroke = np.zeros((1920, 1080), np.float32)
+    stroke[:, 533:547] = 1.0  # a 14 px letter stroke
+    out = prepare_depth(stroke, _scene(tmp_project), SHORT)
+    assert out[:, 540].min() > 0.9
+
+
 def test_edge_softness_is_applied(tmp_project):
     import numpy as np
 

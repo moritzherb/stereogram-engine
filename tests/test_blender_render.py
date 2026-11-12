@@ -165,3 +165,15 @@ def test_solid_rounded_3d(tmp_path, src, min_slope):
     assert slope >= min_slope, f"only {slope:.0%} of the surface is rounded"
     if "text3d" in src:
         assert fill >= 0.52, f"letters too thin ({fill:.0%} fill)"  # thin default font: 0.47
+
+
+def test_short_safe_area_centres_the_object(tmp_path):
+    from dataclasses import asdict
+
+    from engine.formats import SHORT
+
+    proc, out = run_job(tmp_path, {"shape": "heart"}, safe=asdict(SHORT.safe), duration=0.1)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    x0, y0, x1, y1 = bbox(frames(out)[0][0])
+    assert (x0 + x1) / 2 / W == pytest.approx(0.5, abs=0.02)
+    assert (y0 + y1) / 2 / H == pytest.approx(0.5, abs=0.02)

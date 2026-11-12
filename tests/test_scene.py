@@ -56,7 +56,7 @@ def test_new_motions_and_settings(tmp_project):
 
 def test_edge_softness_default_and_bounds(tmp_project):
     s = load_scene(write(tmp_project, "e.yaml", {"id": "e", "shape": "heart"}), tmp_project)
-    assert s.advanced.edge_softness == 1.0
+    assert s.advanced.edge_softness == 1.0 and s.advanced.lift == 0.35
     p = write(tmp_project, "f.yaml", {"id": "f", "shape": "heart", "advanced": {"edge_softness": 9}})
     with pytest.raises(SceneError, match="edge_softness"):
         load_scene(p, tmp_project)

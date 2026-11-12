@@ -9,7 +9,7 @@ import numpy as np
 
 from engine.formats import Format
 
-SOFTNESS_SCALE = 0.008  # sigma as a fraction of frame width at edge_softness = 1
+SOFTNESS_SCALE = 0.0025  # sigma as a fraction of frame width at edge_softness = 1 (keeps thin strokes)
 
 
 def softness_sigma(edge_softness: float, fmt: Format) -> float:

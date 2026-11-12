@@ -96,7 +96,8 @@ advanced:
   depth_strength: 0.33          # 0.1 to 0.6, how far the object pops out
   pattern_repeat: auto          # pattern width in pixels
   viewing: parallel             # parallel (look through) or crosseyed
-  edge_softness: 1.0            # 0 to 3: how gently the object rises out of the background
+  lift: 0.35                    # 0 to 0.8: how far the whole object stands out in front of the background
+  edge_softness: 1.0            # 0 to 3: how soft the object's outline is
   pattern_drift: 0              # pixels per second the whole pattern slides sideways (try 10-20)
 ```
 
@@ -126,7 +127,8 @@ palettes `default`, `ocean`, `sunset`, `forest`, `candy`, `mono`.
 **Keeping it hidden:** the turning motions (`sway`, `tilt`, `rock`) keep the object in place, so it
 only appears when the viewer focuses. Motions that move the object around (`float`, `bob`,
 `swim_past`) give it away more easily without focusing. Soft edges (`edge_softness`) and, optionally,
-`pattern_drift` hide it even better. Smooth, organic patterns (`swirl`, `noise`, busy photos) hide
+`pattern_drift` hide it even better. `lift` balances the other way: higher makes the object pop out
+more clearly once seen, lower blends it into the background. Smooth, organic patterns (`swirl`, `noise`, busy photos) hide
 the object much better than patterns with straight, high-contrast lines (`cells`, `stripes`).
 
 Tips: big, bold shapes read best; fine details (fingers, thin legs) disappear.

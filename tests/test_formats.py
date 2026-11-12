@@ -8,6 +8,14 @@ def test_short_and_long_constants():
     assert (LONG.width, LONG.height, LONG.repeat_px) == (1920, 1080, 175)
 
 
+def test_safe_areas_are_centred():
+    for fmt in (SHORT, LONG):
+        s = fmt.safe
+        assert s.left == s.right and s.top == s.bottom
+    assert (SHORT.safe.top, SHORT.safe.left) == (0.20, 0.15)  # clear of app buttons and both text lines
+    assert (LONG.safe.top, LONG.safe.left) == (0.08, 0.10)
+
+
 def test_preview_halves():
     p = preview_of(SHORT)
     assert (p.width, p.height, p.repeat_px, p.name) == (540, 960, 77, "short-preview")

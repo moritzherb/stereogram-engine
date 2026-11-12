@@ -100,6 +100,7 @@ class MotionSettings(_Strict):
 class Advanced(_Strict):
     depth_strength: float = Field(0.33, ge=0.1, le=0.6)
     edge_softness: float = Field(1.0, ge=0.0, le=3.0)
+    lift: float = Field(0.35, ge=0.0, le=0.8)  # how far the whole object stands out of the background
     pattern_drift: float = Field(0.0, ge=0.0, le=200.0)  # pixels per second, 0 = off
     pattern_repeat: int | Literal["auto"] = "auto"
     viewing: Literal["parallel", "crosseyed"] = "parallel"
