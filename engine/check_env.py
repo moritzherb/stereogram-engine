@@ -18,7 +18,7 @@ from engine.depth.blender_source import (
 )
 from engine.formats import SHORT
 
-FONT = Path(__file__).resolve().parents[1] / "assets" / "fonts" / "Lato-Regular.ttf"
+FONT = Path(__file__).resolve().parents[1] / "assets" / "fonts" / "Montserrat-ExtraBold.ttf"
 SHORT_FRAMES = 900  # 30 s at 30 fps
 
 

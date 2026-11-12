@@ -16,6 +16,7 @@ from engine.project import Project
 
 MOTIONS = ("spin", "float", "bob", "zoom_in", "fly_toward", "swim_past", "ripple", "pulse")
 SHAPES = ("sphere", "cube", "torus", "cone", "heart", "star")
+PLATFORMS = ("tiktok", "reels", "shorts", "facebook", "clean")
 MODEL_EXTS = (".glb", ".gltf", ".fbx")
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _EMOJI_RE = re.compile("[\U0001F000-\U0001FAFF☀-➿️‍]")
@@ -64,6 +65,7 @@ class TextConfig(_Strict):
     top: str | None = "This is a stereogram"
     bottom: str | None = "What do you see?"
     end: str | None = "Comment what you see"
+    bottom_y: float | None = Field(None, ge=0.5, le=0.95)  # overrides the platform's position
 
     _plain = field_validator("top", "bottom", "end")(classmethod(lambda cls, v: _no_emoji(v)))
 
@@ -109,6 +111,7 @@ class Scene(_Strict):
     music: Path | Literal["auto", "none"] = "auto"
     reveal: Literal["auto", "on", "off"] = "auto"
     title: str | None = None
+    platform: Literal["tiktok", "reels", "shorts", "facebook", "clean"] = "tiktok"
     advanced: Advanced = Field(default_factory=Advanced)
 
     _id = field_validator("id")(classmethod(lambda cls, v: _check_id(v)))

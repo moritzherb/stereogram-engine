@@ -17,7 +17,7 @@ from engine.stereo import render_stereogram
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "output" / "samples"
-FONT = ROOT / "assets" / "fonts" / "Lato-Regular.ttf"
+FONT = ROOT / "assets" / "fonts" / "Montserrat-ExtraBold.ttf"
 W, H = 1080, 1920
 
 

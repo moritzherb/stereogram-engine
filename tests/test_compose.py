@@ -18,7 +18,7 @@ from engine.compose import (
 from engine.formats import LONG, SHORT
 from engine.scene import load_scene
 
-FONT = Path(__file__).resolve().parents[1] / "assets" / "fonts" / "Lato-Regular.ttf"
+FONT = Path(__file__).resolve().parents[1] / "assets" / "fonts" / "Montserrat-ExtraBold.ttf"
 
 
 def _scene(project, **data):
@@ -60,20 +60,40 @@ def _changed_rows(frame, base):
     return np.nonzero(np.any(frame != base, axis=(1, 2)))[0]
 
 
+def _bottom_rows(comp, h=1920):
+    black = np.zeros((h, 1080, 3), np.uint8)
+    rows = _changed_rows(comp.frame(black, 0.0), black)
+    return rows[rows > h / 2]
+
+
 def test_text_stays_in_bands(tmp_project):
     comp = ShortComposer(_scene(tmp_project), SHORT, FONT, None)
     black = np.zeros((1920, 1080, 3), np.uint8)
     rows = _changed_rows(comp.frame(black, 0.0), black)
     assert len(rows) > 0
     h = 1920
-    ok = ((rows >= 0.08 * h) & (rows <= 0.16 * h)) | ((rows >= 0.72 * h) & (rows <= 0.80 * h))
+    ok = ((rows >= 0.08 * h) & (rows <= 0.16 * h)) | ((rows >= 0.76 * h) & (rows <= 0.84 * h))
     assert ok.all()
 
 
-def test_text_is_subtle(tmp_project):
+@pytest.mark.parametrize("platform,centre", [("tiktok", 0.80), ("reels", 0.80), ("shorts", 0.80),
+                                             ("facebook", 0.80), ("clean", 0.88)])
+def test_bottom_text_position_per_platform(tmp_project, platform, centre):
+    rows = _bottom_rows(ShortComposer(_scene(tmp_project, platform=platform), SHORT, FONT, None))
+    assert (rows.min() + rows.max()) / 2 / 1920 == pytest.approx(centre, abs=0.006)
+
+
+def test_bottom_text_position_override(tmp_project):
+    rows = _bottom_rows(ShortComposer(_scene(tmp_project, text={"bottom_y": 0.85}), SHORT, FONT, None))
+    assert (rows.min() + rows.max()) / 2 / 1920 == pytest.approx(0.85, abs=0.006)
+
+
+def test_text_is_readable_on_busy_background(tmp_project):
     comp = ShortComposer(_scene(tmp_project), SHORT, FONT, None)
-    out = comp.frame(np.zeros((1920, 1080, 3), np.uint8), 0.0)
-    assert out.max() <= round(0.85 * 255) + 1
+    grey = np.full((1920, 1080, 3), 128, np.uint8)
+    band = comp.frame(grey, 0.0)[int(0.08 * 1920):int(0.16 * 1920)]
+    assert band.max() >= 250  # solid white letters
+    assert band.min() <= 60  # dark outline/shadow around them
 
 
 def test_text_gone_in_the_middle(tmp_project):

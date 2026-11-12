@@ -158,7 +158,7 @@ def _credits(scene: Scene, track: Path | None) -> str:
     lines.append(f"Pattern: generated ({p.generate}, {p.palette})" if isinstance(p, GeneratedPattern)
                  else f"Pattern: {Path(p).name}")
     lines.append(f"Music: {track.name}" if track else "Music: none")
-    lines.append("Font: Lato (SIL Open Font License)")
+    lines.append("Font: Montserrat (SIL Open Font License)")
     return "\n".join(lines) + "\n"
 
 

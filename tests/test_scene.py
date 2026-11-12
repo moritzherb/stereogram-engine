@@ -27,7 +27,7 @@ def write(project, name, data, folder="scenes"):
 
 def test_project_paths(tmp_project):
     assert tmp_project.music == tmp_project.root / "assets" / "music"
-    assert tmp_project.font_path.name == "Lato-Regular.ttf"
+    assert tmp_project.font_path.name == "Montserrat-ExtraBold.ttf"
 
 
 def test_minimal_scene_defaults(tmp_project):
@@ -40,6 +40,16 @@ def test_minimal_scene_defaults(tmp_project):
     assert s.title == "Heart"
     assert s.music == "auto" and s.reveal == "auto"
     assert s.advanced.depth_strength == 0.33 and s.advanced.viewing == "parallel"
+    assert s.platform == "tiktok" and s.text.bottom_y is None
+
+
+def test_platform_and_bottom_y_validation(tmp_project):
+    p = write(tmp_project, "p.yaml", {"id": "p", "shape": "heart", "platform": "myspace"})
+    with pytest.raises(SceneError, match="tiktok"):
+        load_scene(p, tmp_project)
+    p = write(tmp_project, "q.yaml", {"id": "q", "shape": "heart", "text": {"bottom_y": 1.2}})
+    with pytest.raises(SceneError, match="bottom_y"):
+        load_scene(p, tmp_project)
 
 
 def test_seed_stable_per_id(tmp_project):

@@ -21,10 +21,14 @@ SHORT_REVEAL = 3.0
 LONG_REVEAL = 4.0
 LONG_FADE_OUT = 0.5
 
-TEXT_OPACITY = 0.85
+TEXT_OPACITY = 1.0
 TEXT_HEIGHT = 0.03  # cap height as a fraction of frame height
 TOP_Y = 0.12
 BOTTOM_Y = 0.76
+# Where the bottom line sits in Shorts, as a fraction of the height. The app
+# captions/usernames cover roughly the bottom 15-20 %, so app positions stay
+# above them; "clean" is for videos posted without a caption overlay.
+PLATFORM_BOTTOM_Y = {"tiktok": 0.80, "reels": 0.80, "shorts": 0.80, "facebook": 0.80, "clean": 0.88}
 COUNTER_OPACITY = 0.60
 BAR_OPACITY = 0.35
 REVEAL_BG = (140, 142, 146)
@@ -74,12 +78,15 @@ class TextLayer:
         img = Image.new("RGBA", (frame_w, frame_h), (0, 0, 0, 0))
         shadow = Image.new("RGBA", (frame_w, frame_h), (0, 0, 0, 0))
         off = max(1, round(0.002 * frame_h))
+        stroke = max(1, round(cap_px * 0.07))
         ImageDraw.Draw(shadow).text((centre[0] + off, centre[1] + off), text, font=size_font,
-                                    fill=(0, 0, 0, 128), anchor=anchor)
+                                    fill=(0, 0, 0, 170), anchor=anchor, stroke_width=stroke,
+                                    stroke_fill=(0, 0, 0, 170))
         shadow = shadow.filter(ImageFilter.GaussianBlur(max(1, 0.004 * frame_h)))
         txt = Image.new("RGBA", (frame_w, frame_h), (0, 0, 0, 0))
-        ImageDraw.Draw(txt).text(centre, text, font=size_font, fill=(255, 255, 255, round(255 * opacity)),
-                                 anchor=anchor)
+        a = round(255 * opacity)
+        ImageDraw.Draw(txt).text(centre, text, font=size_font, fill=(255, 255, 255, a), anchor=anchor,
+                                 stroke_width=stroke, stroke_fill=(0, 0, 0, round(a * 0.75)))
         img = Image.alpha_composite(Image.alpha_composite(img, shadow), txt)
         arr = np.asarray(img, dtype=np.float32) / 255.0
         rows = np.nonzero(arr[..., 3].max(axis=1) > 0)[0]
@@ -126,8 +133,9 @@ class ShortComposer:
         self.fmt = fmt
         self.duration = scene.duration
         self.top = _line(scene.text.top, fmt, font, TOP_Y)
-        self.bottom = _line(scene.text.bottom, fmt, font, BOTTOM_Y)
-        self.end = _line(scene.text.end, fmt, font, BOTTOM_Y)
+        bottom_y = scene.text.bottom_y or PLATFORM_BOTTOM_Y[scene.platform]
+        self.bottom = _line(scene.text.bottom, fmt, font, bottom_y)
+        self.end = _line(scene.text.end, fmt, font, bottom_y)
         self.reveal = fit_reveal(reveal_img, fmt).astype(np.float32) if reveal_img is not None else None
 
     def frame(self, stereo: np.ndarray, t: float) -> np.ndarray:
