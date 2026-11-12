@@ -226,7 +226,7 @@ def _shape_pillow(name, points, roundness):
     ys = [p[1] for p in points]
     size = min(max(xs) - min(xs), max(ys) - min(ys))
     return _pillow_object(name, _polygon_segments(points), roundness * size / 2,
-                          max(max(xs) - min(xs), max(ys) - min(ys)) / 160)
+                          max(max(xs) - min(xs), max(ys) - min(ys)) / 320)
 
 
 def build_shape(name):
@@ -286,7 +286,7 @@ def build_text(text, font_path=None):
     bpy.data.meshes.remove(mesh)
     if not segments:
         fail(4, "IMPORT_FAILED: the text has no visible letters")
-    return [_pillow_object("Text", segments, radius=0.09, step=0.012)]
+    return [_pillow_object("Text", segments, radius=0.09, step=0.005)]
 
 
 def import_model(path):
