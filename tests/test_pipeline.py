@@ -221,3 +221,13 @@ def test_lift_keeps_antialiased_edges_smooth(tmp_project):
     out = prepare_depth(edge, _scene(tmp_project, advanced={"edge_softness": 0}), SHORT)
     assert np.abs(np.diff(out[100], axis=0)).max() < 0.06  # no sudden jump from tiny edge values
     assert out[100, 700] == pytest.approx(0.35 + 0.65 * 0.6, abs=1e-5)  # full lift inside the object
+
+
+def test_engine_update_triggers_rerender(tmp_project, monkeypatch):
+    import engine.pipeline as pipeline
+
+    src = FakeDepthSource()
+    render_scene(_scene(tmp_project), tmp_project, src, log=lambda m: None)
+    monkeypatch.setattr(pipeline, "engine_fingerprint", lambda: "a newer engine")
+    r = render_scene(_scene(tmp_project), tmp_project, src, log=lambda m: None)
+    assert not r.skipped

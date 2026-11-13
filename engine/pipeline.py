@@ -185,14 +185,24 @@ def _credits(scene: Scene, track: Path | None) -> str:
     return "\n".join(lines) + "\n"
 
 
+def engine_fingerprint() -> str:
+    """Hash of the engine's own code: an engine update re-renders every scene."""
+    h = hashlib.sha256()
+    root = Path(__file__).resolve().parent
+    for path in sorted(root.rglob("*.py")):
+        h.update(path.relative_to(root).as_posix().encode())
+        h.update(path.read_bytes())
+    return h.hexdigest()
+
+
 def full_hash(scene: Scene, project: Project) -> str:
-    """render_hash plus the music track the scene would pick right now."""
+    """render_hash plus the music track the scene would pick right now and the engine version."""
     track = _music_for(scene, project)
     stamp = None
     if track is not None and track.exists():
         st = track.stat()
         stamp = [str(track), st.st_mtime_ns, st.st_size]
-    return hashlib.sha256(json.dumps([render_hash(scene), stamp]).encode()).hexdigest()
+    return hashlib.sha256(json.dumps([render_hash(scene), stamp, engine_fingerprint()]).encode()).hexdigest()
 
 
 def _is_up_to_date(scene: Scene, project: Project, out_dir: Path) -> bool:
