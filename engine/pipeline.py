@@ -74,7 +74,7 @@ def _music_for(scene: Scene, project: Project) -> Path | None:
 
 
 COVERAGE_DEPTH = 0.3  # edge pixels below this depth are only partly covered by the object
-MAX_PATTERN_SHIFT = 0.4  # px of pattern shift per px: steeper depth tears the pattern (visible outlines)
+MAX_PATTERN_SHIFT = 0.8  # px of pattern shift per px: steeper depth tears the pattern (visible outlines)
 
 
 def prepare_depth(depth: np.ndarray, scene: Scene, fmt: Format) -> np.ndarray:

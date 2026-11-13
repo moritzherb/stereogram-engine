@@ -235,7 +235,7 @@ def test_engine_update_triggers_rerender(tmp_project, monkeypatch):
 
 def test_hidden_letters_have_no_hard_steps(tmp_project):
     """Hard depth steps tear the pattern and draw copies of the outline; prepared
-    depth may only change gently (at most 0.4 px of pattern shift per pixel)."""
+    depth may only change gently (at most 0.8 px of pattern shift per pixel)."""
     import numpy as np
 
     from engine.formats import SHORT
@@ -246,6 +246,7 @@ def test_hidden_letters_have_no_hard_steps(tmp_project):
     for x0 in range(180, 900, 90):  # hard-edged letter strokes
         depth[880:1040, x0:x0 + 45] = 0.8
     out = prepare_depth(depth, scene, SHORT)
-    max_step = 0.8 / (0.33 * 154)  # depth change giving 0.4 px of pattern shift
+    max_step = 1.6 / (0.33 * 154)  # depth change giving 0.8 px of pattern shift
     assert np.abs(np.diff(out, axis=1)).max() <= max_step * 1.05
     assert out[960, 200] > 0.85  # the strokes keep their full (lifted) height
+    assert out[960, 247] < 0.3  # but the gaps between strokes stay low: letters stand out, not blurred together
