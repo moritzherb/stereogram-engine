@@ -11,6 +11,7 @@ from typing import Callable
 import numpy as np
 from PIL import Image
 
+from engine.compose import background_colour
 from engine.depth.base import DepthSequence
 from engine.formats import Format
 
@@ -59,9 +60,10 @@ class LongFromShort:
 
         self.reveal = None
         if short.reveal is not None:
-            patch = Image.fromarray(short.reveal[cy0:cy1, cx0:cx1]).resize(self._size, Image.LANCZOS)
+            crop = short.reveal[cy0:cy1, cx0:cx1]
+            patch = Image.fromarray(crop).resize(self._size, Image.LANCZOS)
             canvas = np.empty((fmt.height, fmt.width, 3), np.uint8)
-            canvas[:] = short.reveal[0, 0]  # the reveal's own background colour: no visible seam
+            canvas[:] = background_colour(crop)  # matches the area around the model: no visible seam
             _paste(canvas, np.asarray(patch), *self._offset)
             self.reveal = canvas
 

@@ -173,7 +173,7 @@ def test_segment_reveal_after_stereo():
 
 def test_reveal_title_sits_below_the_model():
     red = np.full((1080, 1920, 3), 194, np.uint8)  # grey background like a Blender reveal
-    red[:, 200:1720] = (250, 0, 0)  # the "model" reaches the top and bottom of the image
+    red[60:1020, 200:1720] = (250, 0, 0)  # a big "model" on a grey background
     seg = SegmentComposer(LONG, FONT, index=1, total=2, title="Hidden heart", stereo_seconds=2.0, reveal_img=red)
     out = seg.frame(np.zeros_like(red), 3.0)
     strip_top = round(0.86 * 1080)
@@ -208,3 +208,9 @@ def test_card():
 def test_thumbnail_size(shape):
     t = thumbnail(np.zeros(shape, np.uint8), "Hidden heart", FONT)
     assert t.shape == (720, 1280, 3) and t.max() > 200
+
+
+def test_fit_reveal_background_ignores_odd_corner_pixels():
+    img = np.full((100, 100, 3), 201, np.uint8)
+    img[0, 0] = (90, 90, 90)
+    assert tuple(fit_reveal(img, LONG)[540, 10]) == (201, 201, 201)

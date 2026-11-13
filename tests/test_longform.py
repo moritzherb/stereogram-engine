@@ -77,3 +77,10 @@ def test_transform_applied_before_placing():
     seq = _short_disc()
     long = LongFromShort(seq, LONG, transform=lambda d: np.where(d > 0, 0.5, 0).astype(np.float32))
     assert long.frame(0).max() == pytest.approx(0.5, abs=0.01)
+
+
+def test_reveal_background_ignores_odd_corner_pixels():
+    seq = _short_disc()
+    seq.reveal[0, 0] = (150, 150, 150)  # e.g. the denoiser darkened one corner pixel
+    r = LongFromShort(seq, LONG).reveal
+    assert tuple(r[5, 5]) == (194, 194, 194)

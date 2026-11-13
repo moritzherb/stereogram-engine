@@ -120,6 +120,12 @@ def _to_uint8(frame: np.ndarray) -> np.ndarray:
     return np.clip(np.round(frame), 0, 255).astype(np.uint8)
 
 
+def background_colour(img: np.ndarray) -> tuple[int, int, int]:
+    """Typical colour along the image border (robust against odd corner pixels)."""
+    border = np.concatenate([img[0], img[-1], img[:, 0], img[:, -1]])
+    return tuple(int(c) for c in np.median(border, axis=0))
+
+
 def fit_reveal(img: np.ndarray, fmt: Format, bottom_strip: float = 0.0) -> np.ndarray:
     """Scale the reveal image to fit the frame (above an optional bottom
     strip kept free for the title), letterboxed on neutral grey."""
@@ -127,7 +133,7 @@ def fit_reveal(img: np.ndarray, fmt: Format, bottom_strip: float = 0.0) -> np.nd
     area_h = round(fmt.height * (1.0 - bottom_strip))
     scale = min(fmt.width / src.width, area_h / src.height)
     size = (max(1, round(src.width * scale)), max(1, round(src.height * scale)))
-    background = tuple(int(c) for c in img[0, 0])  # the reveal's own background: no visible seams
+    background = background_colour(img)  # the reveal's own background: no visible seams
     canvas = Image.new("RGB", (fmt.width, fmt.height), background)
     canvas.paste(src.resize(size, Image.LANCZOS), ((fmt.width - size[0]) // 2, (area_h - size[1]) // 2))
     return np.asarray(canvas)
