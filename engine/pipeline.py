@@ -14,7 +14,7 @@ from PIL import Image
 from engine.checks import QualityWarning, check_frames, check_motion, check_pattern, check_safe_area
 from engine.compose import ShortComposer, thumbnail
 from engine.depth.base import DepthSource
-from engine.depth.soften import soften, softness_sigma
+from engine.depth.soften import limit_slope, soften, softness_sigma
 from engine.encode import VideoWriter, copy_silent, mux_music, pick_music
 from engine.formats import LONG, SHORT, Format, preview_of
 from engine.longform import LongFromShort
@@ -74,6 +74,7 @@ def _music_for(scene: Scene, project: Project) -> Path | None:
 
 
 COVERAGE_DEPTH = 0.3  # edge pixels below this depth are only partly covered by the object
+MAX_PATTERN_SHIFT = 0.4  # px of pattern shift per px: steeper depth tears the pattern (visible outlines)
 
 
 def prepare_depth(depth: np.ndarray, scene: Scene, fmt: Format) -> np.ndarray:
@@ -86,7 +87,13 @@ def prepare_depth(depth: np.ndarray, scene: Scene, fmt: Format) -> np.ndarray:
         # noisy outlines into ragged steps that flicker in the stereogram.
         coverage = np.clip(depth / COVERAGE_DEPTH, 0.0, 1.0)
         depth = (coverage * lift + (1.0 - lift) * depth).astype(np.float32)
-    return soften(depth, softness_sigma(scene.advanced.edge_softness, fmt))
+    softness = scene.advanced.edge_softness
+    if softness > 0:
+        # Pattern shift per unit depth is about depth_strength * repeat / 2 px.
+        shift_per_depth = scene.advanced.depth_strength * _repeat_px(scene, fmt) / 2.0
+        depth = limit_slope(np.ascontiguousarray(depth, dtype=np.float32),
+                            MAX_PATTERN_SHIFT / softness / shift_per_depth)
+    return soften(depth, softness_sigma(softness, fmt))
 
 
 class _FrameRenderer:

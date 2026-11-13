@@ -6,6 +6,7 @@ pattern without focusing; a gentle slope hides it much better.
 from __future__ import annotations
 
 import numpy as np
+from numba import njit
 
 from engine.formats import Format
 
@@ -37,3 +38,38 @@ def soften(depth: np.ndarray, sigma_px: float) -> np.ndarray:
         for _ in range(3):
             out = _box(out, r, axis)
     return np.clip(out, 0.0, 1.0).astype(np.float32)
+
+
+@njit(cache=True)
+def limit_slope(depth: np.ndarray, fall: float) -> np.ndarray:
+    """Raise the low side of steep steps so depth never changes by more than
+    `fall` per pixel (cone dilation, two passes). The object keeps its full
+    height; its outline becomes a gentle ramp instead of a hard step."""
+    h, w = depth.shape
+    out = depth.astype(np.float32).copy()
+    diag = fall * 1.41421356
+    for y in range(h):
+        for x in range(w):
+            v = out[y, x]
+            if x > 0:
+                v = max(v, out[y, x - 1] - fall)
+            if y > 0:
+                v = max(v, out[y - 1, x] - fall)
+                if x > 0:
+                    v = max(v, out[y - 1, x - 1] - diag)
+                if x < w - 1:
+                    v = max(v, out[y - 1, x + 1] - diag)
+            out[y, x] = v
+    for y in range(h - 1, -1, -1):
+        for x in range(w - 1, -1, -1):
+            v = out[y, x]
+            if x < w - 1:
+                v = max(v, out[y, x + 1] - fall)
+            if y < h - 1:
+                v = max(v, out[y + 1, x] - fall)
+                if x < w - 1:
+                    v = max(v, out[y + 1, x + 1] - diag)
+                if x > 0:
+                    v = max(v, out[y + 1, x - 1] - diag)
+            out[y, x] = v
+    return out

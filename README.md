@@ -97,7 +97,7 @@ advanced:
   pattern_repeat: auto          # pattern width in pixels
   viewing: parallel             # parallel (look through) or crosseyed
   lift: 0.35                    # 0 to 0.8: how far the whole object stands out in front of the background
-  edge_softness: 1.0            # 0 to 3: how soft the object's outline is
+  edge_softness: 1.0            # 0 to 3: how gently the outline rises (higher hides it better in the pattern)
   pattern_drift: 0              # pixels per second the whole pattern slides sideways (try 10-20)
 ```
 

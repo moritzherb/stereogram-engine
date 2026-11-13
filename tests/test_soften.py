@@ -26,3 +26,14 @@ def test_zero_sigma_is_identity():
 def test_sigma_scales_with_frame_width():
     assert softness_sigma(1.0, SHORT) == 2 * softness_sigma(1.0, preview_of(SHORT))
     assert softness_sigma(0.0, SHORT) == 0.0
+
+
+def test_limit_slope_turns_steps_into_ramps():
+    from engine.depth.soften import limit_slope
+
+    d = np.zeros((40, 200), np.float32)
+    d[:, 100:] = 0.9
+    out = limit_slope(d, 0.02)
+    assert np.abs(np.diff(out, axis=1)).max() <= 0.02 + 1e-6
+    assert (out >= d).all()  # only raises the low side: the object keeps its full height
+    assert out[20, 150] == np.float32(0.9) and out[20, 10] == 0  # far from the step nothing changes
