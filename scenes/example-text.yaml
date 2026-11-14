@@ -1,0 +1,11 @@
+# The word HELLO in solid block letters, gently moving towards and away from
+# the viewer. (For words, breathe keeps every letter at the same height and the
+# outline still; turning motions make parts of a flat word sink back.)
+id: example-text
+text3d: "HELLO"
+motion: breathe
+duration: 20
+pattern:
+  generate: swirl
+  palette: default   # busy and multicoloured: hides the letter edges best
+title: "Hidden word"

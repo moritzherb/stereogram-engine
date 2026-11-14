@@ -1,0 +1,7 @@
+output/
+cache/
+.venv/
+__pycache__/
+*.egg-info/
+.superpowers/
+.pytest_cache/

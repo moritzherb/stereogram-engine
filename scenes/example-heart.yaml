@@ -1,0 +1,9 @@
+# A puffy heart that gently turns side to side, hidden in a warm swirl pattern.
+id: example-heart
+shape: heart
+motion: sway
+duration: 20
+pattern:
+  generate: swirl
+  palette: sunset
+title: "Hidden heart"

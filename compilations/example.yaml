@@ -1,0 +1,5 @@
+# A long YouTube video made from the two example scenes.
+id: example
+title: "Can you see the hidden 3D images?"
+scenes: [example-heart, example-text]
+segment_seconds: 20
